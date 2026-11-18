@@ -120,7 +120,6 @@ The project is intended as a decision-support and educational experiment. It sho
 
 - `DOC-20261117-WA0000.csv` — source dataset
 - `run_experiments.py` — full reproducible model comparison
-- `wqi_estimation1_ipynb_(1)_txt.py` — exported, simplified notebook walkthrough
 - `results.txt` — previously recorded detailed metrics
 - `requirements.txt` — Python dependencies
 - `output/` — notebook output notes and figures
