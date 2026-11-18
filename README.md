@@ -28,7 +28,7 @@ The file has no WQI column, so the WQI is computed in the code. It is read with 
 | File | Purpose |
 |---|---|
 | `WQI_Estimation1.py` | Main code: step-by-step notebook (cleaning, WQI, chronological split, regression, classification, feature importance, actual vs predicted plot) |
-| `water_dataX.csv` | Raw dataset |
+| `DOC-20261117-WA0000.csv` | Raw dataset |
 | `requirements.txt` | Python dependencies |
 | `colablink.md` | Link to the Colab notebook |
 
@@ -45,12 +45,6 @@ pip install -r requirements.txt jupyter
 jupyter notebook WQI_Estimation1.ipynb     # keep water_dataX.csv in the same folder
 ```
 The notebook is short and runs in well under a minute. Random seed is 42.
-
-Note: the notebook is a simplified walkthrough (linear regression, decision tree and random forest;
-logistic regression, decision tree and random forest; no baselines or hyper-parameter tuning). The
-fuller experiments in the report (7 regressors, 5 classifiers, baselines, time-series cross-validation)
-were run with `run_experiments.py`.
-
 ## Method summary
 1. **Cleaning:** "NAN"/blank values become missing, one duplicate row removed, 89 pH values outside 0-14 set to missing.
 2. **WQI:** weighted arithmetic index from pH, DO, BOD, conductivity, nitrate, fecal and total coliform, with the quality
