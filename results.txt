@@ -1,0 +1,133 @@
+REPRODUCED EXPERIMENT RESULTS
+============================
+
+Command:
+  python run_experiments.py --data DOC-20261117-WA0000.csv
+
+Environment:
+  GitHub Actions, Ubuntu, Python 3.11
+  Dependencies installed from requirements.txt
+
+DATA CLEANING AND WQI
+---------------------
+Raw rows: 1991
+Complete WQI rows: 1572
+Invalid pH values set to missing: 89
+Years: 2005-2014
+Training rows (<=2012): 1111
+Test rows (>=2013): 461
+
+WQI mean: 56.960
+WQI standard deviation: 16.263
+WQI minimum: 21.632
+WQI maximum: 90.628
+
+Normalised weights:
+  pH:          15.574%
+  DO:          26.475%
+  BOD:         44.125%
+  Conductivity: 0.059%
+  Nitrate:     13.238%
+  Fecal coliform: 0.265%
+  Total coliform: 0.265%
+
+Category counts:
+  Good / Excellent: 640
+  Poor:             618
+  Very Poor:        314
+
+VALIDATION DESIGN
+-----------------
+The test set is chronological (2013-2014).
+Hyperparameter selection uses five expanding, year-blocked validation
+folds on the training period. Each validation fold contains a complete
+year and trains only on earlier years.
+
+Feature Set A:
+  temp, do, ph, cond, bod, nitrate, fc, tc
+
+Feature Set B:
+  temp, do, ph, cond
+
+REGRESSION RESULTS
+------------------
+Feature set A (all measurements)
+Model                 MAE      RMSE      R2       CV RMSE
+Mean baseline        12.915    15.187   -0.006       -
+Station-mean          5.795     7.930    0.726       -
+Linear regression     6.486     8.509    0.684     9.058
+Ridge regression      6.502     8.502    0.685     9.045
+k-NN                  4.446     6.371    0.823     6.099
+SVR (RBF)             1.631     2.515    0.972     3.402
+Decision tree         2.112     3.012    0.960     3.377
+Random forest         1.197     1.851    0.985     2.417
+Gradient boosting     0.581     0.823    0.997     1.159
+
+Feature set B (field measurements)
+Model                 MAE      RMSE      R2       CV RMSE
+Mean baseline        12.915    15.187   -0.006       -
+Station-mean          5.795     7.930    0.726       -
+Linear regression    10.833    13.406    0.216    12.988
+Ridge regression     10.830    13.393    0.217    12.983
+k-NN                  8.775    11.397    0.433    10.736
+SVR (RBF)             8.931    11.775    0.395    10.988
+Decision tree         9.777    12.640    0.303    11.707
+Random forest         8.905    11.324    0.440    10.661
+Gradient boosting     8.870    11.342    0.439    10.601
+
+CLASSIFICATION RESULTS
+----------------------
+Feature set A
+Model                  Accuracy    Macro-F1
+Majority class          0.362       0.177
+Station-majority        0.731       0.740
+Logistic regression     0.820       0.802
+k-NN                    0.768       0.777
+Decision tree           0.816       0.809
+Random forest           0.913       0.905
+Gradient boosting       0.933       0.930
+
+Feature set B
+Model                  Accuracy    Macro-F1
+Majority class          0.362       0.177
+Station-majority        0.731       0.740
+Logistic regression     0.564       0.575
+k-NN                    0.642       0.657
+Decision tree           0.599       0.608
+Random forest           0.616       0.627
+Gradient boosting       0.657       0.661
+
+INTERPRETATION
+--------------
+1. Set A produces very high scores because its input variables include
+   the measurements used to construct the WQI target. This is mainly
+   formula reconstruction, not independent water-quality measurement.
+2. Set B is the practical field-measurement experiment. Its best
+   regression model has RMSE 11.324 and R2 0.440.
+3. The station-mean baseline (RMSE 7.930, R2 0.726) outperforms every
+   Set B regression model. This limitation must be stated clearly.
+4. Set A Gradient Boosting classification reaches 93.3% accuracy and
+   0.930 macro-F1 in this reproducible run.
+5. Scores from the earlier report differ slightly because the updated
+   implementation uses year-blocked forward validation for hyperparameter
+   selection. The chronological 2013-2014 test set is unchanged.
+6. The dataset is not a station-held-out evaluation: the earlier analysis
+   found that 99.8% of test-station records also occur in training.
+   Generalisation to completely unseen stations is therefore unproven.
+
+OUTPUTS
+-------
+The GitHub Actions run produced 14 output files, including:
+  - WQI-enriched dataset
+  - Regression and classification result tables
+  - Confusion matrix and classification report
+  - Permutation feature importance for both feature sets
+  - Observed-versus-predicted plot
+  - Yearly median WQI plot
+  - Run summary
+
+The output bundle is attached to the successful GitHub Actions run:
+  https://github.com/aman-naveen1/ML-project/actions/runs/44308828024
+
+These results are a reproduced computational experiment, not an official
+CPCB water-quality classification or regulatory assessment.
