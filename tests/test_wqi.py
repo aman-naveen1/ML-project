@@ -41,6 +41,18 @@ class WQITests(unittest.TestCase):
         self.assertAlmostEqual(result.iloc[0]["wqi"], 100.0, places=8)
         self.assertEqual(str(result.iloc[0]["category"]), "Very Poor")
 
+    def test_validation_splits_keep_years_separate(self):
+        from run_experiments import make_year_based_splits
+
+        frame = pd.DataFrame({"year": [2005, 2005, 2006, 2006, 2007, 2007, 2008, 2008]})
+        splits = make_year_based_splits(frame)
+        self.assertEqual(len(splits), 3)
+        for train_indices, validation_indices in splits:
+            train_years = set(frame.iloc[train_indices]["year"])
+            validation_years = set(frame.iloc[validation_indices]["year"])
+            self.assertLess(max(train_years), min(validation_years))
+            self.assertEqual(len(validation_years), 1)
+
     def test_log_transform_keeps_feature_columns(self):
         transformed = transform_features(self.sample, ["temp", "cond", "bod"])
         self.assertEqual(list(transformed.columns), ["temp", "cond", "bod"])
