@@ -227,11 +227,12 @@ This repository documents the data, assumptions, methods, outputs, and limitatio
 ## External recent-period dataset (2012–2023)
 
 A second, independent repository copy is included at
-`data/external/RiverWaterQualityOverYears.csv`. It is attributed to
-[KunalLatkar/RiverWaterQualityDataset](https://github.com/KunalLatkar/RiverWaterQualityDataset),
-whose README describes the data as compiled from the CPCB NWMP portal for
-2012–2023. The checked-in file is the source repository's raw annual
-station-level minimum/maximum dataset, not its separately preprocessed file.
+`data/external/RiverWaterQualityOverYears.csv`. It is an external annual station-level dataset whose accompanying documentation
+identifies the Central Pollution Control Board (CPCB) National Water Quality
+Monitoring Programme (NWMP) as the underlying monitoring source. See the
+[CPCB NWMP data portal](https://cpcb.nic.in/nwmp-data-2023/) for programme
+reference. The checked-in file contains annual station-level minimum/maximum
+values rather than individual sample measurements.
 
 This source has 10,006 data records, 22 columns and observations in 2012–2014
 and 2017–2023 (no 2015 or 2016 records in this file). It reports annual
@@ -256,7 +257,4 @@ does not fill missing source measurements with imputed values and does not
 train or claim to externally validate the original row-level ML models.
 Overlapping years (2012–2014) are useful for checking broad consistency, but
 the different annual min/max aggregation means they are not directly
-comparable to the original dataset's individual records. The source repository
-also documents preprocessing and a derived contamination label; this project
-does not use that preprocessed label or claim it is an independent ground
-truth.
+comparable to the original dataset's individual records. The external source's derived labels are not used as independent ground truth.
