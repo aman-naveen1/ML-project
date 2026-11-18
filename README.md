@@ -188,7 +188,19 @@ python run_experiments.py --data DOC-20261117-WA0000.csv
 
 Generated files are written to `outputs/`. The workflow in `.github/workflows/tests.yml` runs the tests and full experiment and uploads the output directory as a GitHub Actions artifact.
 
-## 9. Repository layout
+## 9. Python scripts: what each file does
+
+There are three Python scripts in the repository, with different roles:
+
+| File | Purpose | When to use it |
+|---|---|---|
+| [`wqi_estimation1.py`](wqi_estimation1.py) | The original, Colab-derived workflow. It loads and cleans the main CSV, calculates WQI and categories, trains a smaller set of regression and classification models, and displays basic feature-importance and actual-vs-predicted plots. | Use this to follow the original step-by-step project workflow. It is not the full reproducible experiment pipeline. |
+| [`run_experiments.py`](run_experiments.py) | The main reproducible experiment pipeline. It calculates WQI, compares the full regression and classification model sets across Set A and Set B, evaluates baselines with chronological validation, and saves metrics, diagnostics, plots, and a run summary. | **Use this for the primary experiments and for regenerating the main project results.** |
+| [`analyze_external_dataset.py`](analyze_external_dataset.py) | Analyses the separate annual station-level dataset containing minimum and maximum measurements. It checks data completeness and calculates parameter-bound WQI envelopes and yearly summaries. It reuses the standards from `run_experiments.py`. | Use this only for the additional 2012–2023 external-dataset analysis. It does not train or externally validate the ML models. |
+
+In short: **`wqi_estimation1.py` = original workflow; `run_experiments.py` = main ML experiments; `analyze_external_dataset.py` = external annual-data analysis.**
+
+## 10. Repository layout
 
 ```text
 ML-project/
@@ -211,7 +223,7 @@ ML-project/
 └── outputs/                 # generated experiment artefacts
 ```
 
-## 10. References
+## 11. References
 
 1. Brown, R. M., McClelland, N. I., Deininger, R. A., & Tozer, R. G. (1970). A water quality index—do we dare? *Water & Sewage Works*, 117(10), 339–343.
 2. Central Pollution Control Board. [Water quality criteria](https://cpcb.nic.in/water-quality-criteria/).
