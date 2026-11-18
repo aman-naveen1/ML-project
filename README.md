@@ -27,7 +27,7 @@ The file has no WQI column, so the WQI is computed in the code. It is read with 
 ## Code
 | File | Purpose |
 |---|---|
-| `WQI_Estimation1.ipynb` | Main code: step-by-step notebook (cleaning, WQI, chronological split, regression, classification, feature importance, actual vs predicted plot) |
+| `WQI_Estimation1.py` | Main code: step-by-step notebook (cleaning, WQI, chronological split, regression, classification, feature importance, actual vs predicted plot) |
 | `water_dataX.csv` | Raw dataset |
 | `requirements.txt` | Python dependencies |
 | `colablink.md` | Link to the Colab notebook |
