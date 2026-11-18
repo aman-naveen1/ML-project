@@ -27,6 +27,8 @@ The analysis assigns stable project column names after reading the source CSV. S
 
 The dataset is a secondary compilation. Units and source definitions are retained as documented; they should be checked against the original monitoring authority before operational use.
 
+See [DATA_SOURCES.md](DATA_SOURCES.md) for source URLs, retrieval date, attribution boundaries, and the provenance caveats for the additional annual station-level dataset.
+
 ## 3. WQI definition and assumptions
 
 The index uses seven measurements: pH, dissolved oxygen (DO), biochemical oxygen demand (BOD), conductivity, nitrate/nitrite nitrogen, faecal coliform, and total coliform.
