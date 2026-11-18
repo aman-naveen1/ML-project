@@ -35,7 +35,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -320,6 +320,26 @@ def run_classification(train, test, features, label, cv, report_lines, output_di
     return result
 
 
+def run_random_split_comparison(water: pd.DataFrame, output_dir: Path) -> dict:
+    """Secondary random 70/30 Set B comparison; chronological holdout stays primary."""
+    train, test = train_test_split(water, test_size=0.30, random_state=42, shuffle=True)
+    X_train = transform_features(train, FIELD_FEATURES)
+    X_test = transform_features(test, FIELD_FEATURES)
+    y_train, y_test = train["wqi"], test["wqi"]
+    cv = KFold(n_splits=5, shuffle=True, random_state=42)
+    estimator = make_pipeline(RandomForestRegressor(random_state=42, n_jobs=-1))
+    grid = {"model__max_depth": [5, 10, None], "model__min_samples_leaf": [1, 5, 10]}
+    search = GridSearchCV(estimator, grid, scoring="neg_root_mean_squared_error", cv=cv, n_jobs=-1, refit=True)
+    search.fit(X_train, y_train)
+    prediction = search.predict(X_test)
+    mean_prediction = np.full(len(test), y_train.mean())
+    station_prediction = station_baselines(train, test, "wqi")
+    rows = []
+    for name, predicted in [("Random Forest (Set B)", prediction), ("Mean baseline", mean_prediction), ("Station-mean baseline", station_prediction)]:
+        rows.append({"model": name, "split": "random 70/30", "random_state": 42, "test_size": 0.30, "train_rows": len(train), "test_rows": len(test), "RMSE": np.sqrt(mean_squared_error(y_test, predicted)), "R2": r2_score(y_test, predicted)})
+    pd.DataFrame(rows).to_csv(output_dir / "random_split_comparison.csv", index=False)
+    return {"random_rf_rmse": float(rows[0]["RMSE"]), "random_rf_r2": float(rows[0]["R2"]), "random_rf_params": search.best_params_, "random_train_rows": len(train), "random_test_rows": len(test)}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="DOC-20261117-WA0000.csv")
@@ -347,6 +367,7 @@ def main():
         raise ValueError("The chronological split requires training years <=2012 and test years >=2013.")
 
     cv = make_year_based_splits(train)
+    random_result = run_random_split_comparison(water, output_dir)
     lines = [
         f"Raw rows: {cleaning['raw_rows']}",
         f"Complete WQI rows: {cleaning['clean_complete_rows']}",
@@ -358,6 +379,10 @@ def main():
         f"min={water['wqi'].min():.3f}; max={water['wqi'].max():.3f}",
         f"Weights: {weights}",
         f"Category counts: {water['category'].value_counts().to_dict()}",
+        "Secondary random 70/30 Set B comparison (seed=42; diagnostic only): "
+        f"Random Forest RMSE={random_result['random_rf_rmse']:.3f}; R2={random_result['random_rf_r2']:.3f}; "
+        f"train={random_result['random_train_rows']}; test={random_result['random_test_rows']}; "
+        f"best_params={random_result['random_rf_params']}",
     ]
 
     water.to_csv(output_dir / "wqi_dataset.csv", index=False)
