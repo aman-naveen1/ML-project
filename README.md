@@ -1,64 +1,183 @@
 # Water Quality Index (WQI) Estimation for Indian Rivers
 
-Machine Learning course project, Department of Computer Science, Ramanujan College, University of Delhi.
-Author: Aman Naveen. Supervisor: Mr Nikhil Kumar Rajput.
+A machine learning project that calculates a Water Quality Index (WQI) from river-monitoring measurements and explores how well machine learning models can estimate water quality.
 
-Repository: https://github.com/aman-naveen1/ML-project
+**Course project:** Machine Learning  
+**Department:** Computer Science, Ramanujan College, University of Delhi  
+**Author:** Aman Naveen  
+**Supervisor:** Mr Nikhil Kumar Rajput
 
-This project computes a weighted arithmetic Water Quality Index (WQI) from seven river-monitoring
-parameters (standards based on CPCB criteria) and asks how well classical ML models can estimate it,
-using a chronological train/test split (train 2005-2012, test 2013-2014).
+[Open in Google Colab](https://colab.research.google.com/drive/1pJZ5Vrkecg026V1rlan2kHZqa10tQvUG?usp=sharing)
 
-## Main findings (from the report)
-- With **all parameters** (feature set A), gradient boosting reproduces the index almost exactly
-  (RMSE 0.82, R2 = 0.997). This mostly shows that the models can learn the formula.
-- With **field measurements only** (set B: temperature, pH, dissolved oxygen, conductivity), the best model
-  (random forest) reaches R2 of about 0.44, which beats the mean baseline but not the
-  station-mean baseline (R2 = 0.73).
-- BOD carries 44% of the index weight and is by far the most important input.
+---
 
-## Data
-Kaggle dataset "Indian Water Quality Data" (anbarivan):
-https://www.kaggle.com/datasets/anbarivan/indian-water-quality-data
-The data file is included in this repository (1,991 rows, 2003-2014). The notebook reads it as
-`water_dataX.csv`, so **rename the file in the repo (`DOC-20261117-WA0000.csv`) to `water_dataX.csv`**.
-The file has no WQI column, so the WQI is computed in the code. It is read with `encoding="latin-1"`.
+## Project overview
 
-## Code
-| File | Purpose |
+Water quality is influenced by several physical and chemical measurements. This project uses monitoring data from Indian rivers to:
+
+- Clean and prepare the raw measurements.
+- Calculate a weighted arithmetic Water Quality Index.
+- Group observations into water-quality categories.
+- Train regression models to estimate numerical WQI values.
+- Train classification models to predict water-quality categories.
+- Compare model performance and inspect feature importance.
+
+The dataset contains **1,991 records** from 2003–2014. After duplicate removal, validation of pH values, and filtering for complete WQI inputs, **1,572 observations** are used for WQI analysis.
+
+## Dataset
+
+The project uses the Kaggle dataset [Indian Water Quality Data](https://www.kaggle.com/datasets/anbarivan/indian-water-quality-data).
+
+The raw CSV is included in this repository as `DOC-20261117-WA0000.csv`. The Python script currently looks for a file named `water_dataX.csv` in the working directory. Rename or copy the downloaded CSV to that name before running the script.
+
+The measurements used include:
+
+| Parameter | Description |
 |---|---|
-| `WQI_Estimation1.py` | Main code: step-by-step notebook (cleaning, WQI, chronological split, regression, classification, feature importance, actual vs predicted plot) |
-| `DOC-20261117-WA0000.csv` | Raw dataset |
-| `requirements.txt` | Python dependencies |
-| `colablink.md` | Link to the Colab notebook |
+| Temperature | Water temperature |
+| DO | Dissolved oxygen |
+| pH | Acidity or alkalinity |
+| Conductivity | Electrical conductivity |
+| BOD | Biochemical oxygen demand |
+| Nitrate | Nitrate concentration |
+| FC | Fecal coliform |
+| TC | Total coliform |
 
-Colab notebook: https://colab.research.google.com/drive/1pJZ5Vrkecg026V1rlan2kHZqa10tQvUG?usp=sharing
+## Methodology
 
-## How to run
-**Colab:** open the Colab link above, run all cells, and upload `water_dataX.csv` when asked.
+### 1. Data cleaning
 
-**Locally:**
-```bash
-git clone https://github.com/aman-naveen1/ML-project
-cd ML-project
-pip install -r requirements.txt jupyter
-jupyter notebook WQI_Estimation1.ipynb     # keep water_dataX.csv in the same folder
+- Convert measurement columns to numeric values.
+- Remove duplicate records.
+- Treat pH values outside the 0–14 range as missing.
+- Remove records missing any parameter required for WQI calculation.
+
+### 2. WQI calculation
+
+The project calculates a weighted arithmetic index using pH, dissolved oxygen, BOD, conductivity, nitrate, fecal coliform, and total coliform.
+
+Parameter weights are derived from the selected standards and normalised so that they sum to one. Parameter quality ratings are clipped to the 0–100 range before being combined into the final WQI.
+
+The categories used in the implementation are:
+
+| WQI range | Category |
+|---|---|
+| 0–50 | Good |
+| Above 50–75 | Poor |
+| Above 75 | Very Poor |
+
+These categories and parameter standards are assumptions used for this project; they should not be treated as an official regulatory assessment.
+
+### 3. Model training and evaluation
+
+The checked-in script uses a chronological split:
+
+- **Training data:** up to and including 2012
+- **Testing data:** 2013 onwards
+
+It trains regression models to predict WQI and classification models to predict the corresponding category. Missing feature values are imputed using the median. Standardisation is applied in the pipelines for models that need it.
+
+Regression is evaluated using:
+- Mean Absolute Error (MAE)
+- Root Mean Squared Error (RMSE)
+- R² score
+
+Classification is evaluated using accuracy and a per-class classification report.
+
+### 4. Feature importance and visualisation
+
+The script also plots the WQI distribution, feature importance from the random forest regressor, and actual versus predicted WQI values.
+
+## Results and observations
+
+The accompanying `results.txt` contains a broader experiment comparing multiple models and two feature sets. Its reported chronological test results (2013–2014) include:
+
+| Experiment / model | Feature set | RMSE | R² |
+|---|---|---:|---:|
+| Gradient Boosting | All parameters (A) | 0.822 | 0.997 |
+| Random Forest | Field measurements (B) | 11.329 | 0.440 |
+| Station-mean baseline | Baseline | 7.930 | 0.726 |
+| Mean baseline | Baseline | 15.187 | -0.006 |
+
+**How to interpret this:** the all-parameter experiment can closely reproduce the constructed WQI, in part because the target is calculated from those same inputs. With field measurements alone, prediction is more difficult. In the reported comparison, the station-mean baseline also outperforms the best field-measurement model, so the latter result should not be presented as strong predictive performance.
+
+The report identifies BOD as the most influential parameter in the all-parameter feature set. This is consistent with its large contribution to the index formula.
+
+> The figures above are transcribed from the repository's `results.txt`; they are not claimed as output from the simpler checked-in `wqi_estimation1.py` script.
+
+## Repository structure
+
+```text
+ML-project/
+├── DOC-20261117-WA0000.csv   # Raw water-quality dataset
+├── wqi_estimation1.py        # Main Python implementation
+├── requirements.txt          # Python dependencies
+├── results.txt               # Experiment results and metrics
+├── colablink.md              # Google Colab notebook link
+└── output/                   # Output directory
 ```
-The notebook is short and runs in well under a minute. Random seed is 42.
-## Method summary
-1. **Cleaning:** "NAN"/blank values become missing, one duplicate row removed, 89 pH values outside 0-14 set to missing.
-2. **WQI:** weighted arithmetic index from pH, DO, BOD, conductivity, nitrate, fecal and total coliform, with the quality
-   rating of each parameter limited to 0-100. Only the 1,572 complete records are kept.
-   Categories: WQI <= 50 good/excellent, 51-75 poor, above 75 very poor.
-3. **Split:** by year (train 2005-2012, test 2013-2014).
-4. **Preprocessing:** median imputation and standardisation inside a pipeline.
-5. **Evaluation:** MAE, RMSE, R2 (regression); accuracy and per-class report (classification); feature importance.
+
+## Getting started
+
+### Requirements
+
+- Python 3.10 or later
+- pip
+
+### Run locally
+
+Clone the repository:
+
+```bash
+git clone https://github.com/aman-naveen1/ML-project.git
+cd ML-project
+```
+
+Install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Make the dataset available under the filename expected by the script:
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item DOC-20261117-WA0000.csv water_dataX.csv
+```
+
+**macOS / Linux:**
+```bash
+cp DOC-20261117-WA0000.csv water_dataX.csv
+```
+
+Run the project:
+
+```bash
+python wqi_estimation1.py
+```
+
+The script includes a Google Colab upload fallback when the expected CSV is not found. For the Colab workflow, open the [notebook](https://colab.research.google.com/drive/1pJZ5Vrkecg026V1rlan2kHZqa10tQvUG?usp=sharing) and follow its cells.
+
+## Dependencies
+
+The project uses:
+
+- NumPy
+- pandas
+- scikit-learn
+- Matplotlib
+
+See [requirements.txt](requirements.txt) for the version constraints.
 
 ## Limitations
-The WQI is computed by us from a method with uneven weights (coliforms contribute under 1%), and the nitrate and
-fecal-coliform standards are our assumptions. The data have no month, 99.8% of test stations were seen in training,
-so results do not show performance on new rivers.
 
-## AI use
-An AI assistant (Claude, Anthropic) helped with literature scanning, drafting the report and the code. The author ran
-the code, checked the results and takes responsibility for the content.
+- The WQI is calculated from selected parameter standards and weights; different standards or weighting methods can produce different index values.
+- Coliform parameters contribute a relatively small share of the calculated index under the selected weighting scheme.
+- The dataset does not include month-level information.
+- In the reported experiment, 99.8% of test-station records came from stations also present in the training data. Results therefore do not establish that the models generalise to entirely unseen rivers or stations.
+- A model that predicts a formula-derived WQI accurately is not necessarily measuring water quality independently of that formula.
+
+## Acknowledgements
+
+An AI assistant (Claude, Anthropic) was used to support literature scanning, report drafting, and code development. The author ran the code, reviewed the results, and takes responsibility for the project.
