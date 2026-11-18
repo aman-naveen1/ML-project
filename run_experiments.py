@@ -261,9 +261,15 @@ def run_regression(train, test, features, label, cv, report_lines, output_dir):
         n_repeats=20, random_state=42, n_jobs=-1
     )
     imp = pd.DataFrame({"feature": features, "rmse_increase": importance.importances_mean})
-    imp.sort_values("rmse_increase", ascending=False).to_csv(
-        output_dir / f"importance_{label}.csv", index=False
-    )
+    imp = imp.sort_values("rmse_increase", ascending=False)
+    imp.to_csv(output_dir / f"importance_{label}.csv", index=False)
+    plt.figure(figsize=(7, 4))
+    plt.barh(imp["feature"][::-1], imp["rmse_increase"][::-1])
+    plt.xlabel("Increase in test RMSE when shuffled")
+    plt.title(f"Permutation importance — set {label} ({best_name})")
+    plt.tight_layout()
+    plt.savefig(output_dir / f"permutation_importance_{label}.png", dpi=180)
+    plt.close()
     return result, best_name, best_model, X_test, y_test
 
 
@@ -301,12 +307,12 @@ def run_classification(train, test, features, label, cv, report_lines, output_di
             f"Classification {label} | {name}: best_params={search.best_params_}; "
             f"accuracy={rows[-1]['accuracy']:.3f}; macro_F1={rows[-1]['macro_f1']:.3f}"
         )
-        if name == "Gradient boosting" and label == "A":
+        if name == "Gradient boosting":
             pd.DataFrame(
                 confusion_matrix(y_test, pred, labels=CLASS_NAMES),
                 index=CLASS_NAMES, columns=CLASS_NAMES
-            ).to_csv(output_dir / "confusion_matrix_A.csv")
-            (output_dir / "classification_report_A.txt").write_text(
+            ).to_csv(output_dir / f"confusion_matrix_{label}.csv")
+            (output_dir / f"classification_report_{label}.txt").write_text(
                 classification_report(y_test, pred, labels=CLASS_NAMES, zero_division=0)
             )
     result = pd.DataFrame(rows)
@@ -322,6 +328,16 @@ def main():
     data_path = Path(args.data)
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    raw_data = pd.read_csv(data_path, encoding="latin-1")
+    plt.figure(figsize=(8, 4))
+    missing_pct = raw_data.isna().mean().mul(100).sort_values(ascending=False)
+    missing_pct.plot(kind="bar")
+    plt.ylabel("Missing values (%)")
+    plt.title("Missing values by source column")
+    plt.tight_layout()
+    plt.savefig(output_dir / "missing_values.png", dpi=180)
+    plt.close()
 
     data, cleaning = load_and_clean(data_path)
     water, weights = calculate_wqi(data)
@@ -345,6 +361,34 @@ def main():
     ]
 
     water.to_csv(output_dir / "wqi_dataset.csv", index=False)
+
+    correlation = water[ALL_FEATURES + ["wqi"]].corr(method="spearman")
+    plt.figure(figsize=(8, 6))
+    plt.imshow(correlation, aspect="auto", cmap="coolwarm", vmin=-1, vmax=1)
+    plt.colorbar(label="Spearman correlation")
+    plt.xticks(range(len(correlation.columns)), correlation.columns, rotation=45, ha="right")
+    plt.yticks(range(len(correlation.index)), correlation.index)
+    plt.title("Spearman correlation matrix")
+    plt.tight_layout()
+    plt.savefig(output_dir / "spearman_correlation.png", dpi=180)
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(9, 2.5))
+    ax.axis("off")
+    stages = ["Raw CSV", "Cleaning", "WQI calculation", "Year split", "Model pipelines", "Evaluation"]
+    for i, stage in enumerate(stages):
+        x = 0.02 + i * 0.163
+        ax.text(x, 0.5, stage, ha="center", va="center",
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="black"),
+                transform=ax.transAxes, fontsize=8)
+        if i < len(stages) - 1:
+            ax.annotate("", xy=(x + 0.145, 0.5), xytext=(x + 0.095, 0.5),
+                        xycoords=ax.transAxes, textcoords=ax.transAxes,
+                        arrowprops=dict(arrowstyle="->"))
+    plt.tight_layout()
+    plt.savefig(output_dir / "methodology_pipeline.png", dpi=180)
+    plt.close()
+
     all_regression = []
     all_classification = []
     for label, features in [("A", ALL_FEATURES), ("B", FIELD_FEATURES)]:
