@@ -174,10 +174,15 @@ def calculate_wqi_interval(frame: pd.DataFrame) -> pd.DataFrame:
     result["category_upper_bound"] = pd.cut(
         high, bins=bins, labels=labels, right=True
     ).astype("string")
-    result["category_is_ambiguous"] = (
+    valid_categories = (
         result["category_lower_bound"].notna()
         & result["category_upper_bound"].notna()
-        & (result["category_lower_bound"] != result["category_upper_bound"])
+    )
+    ambiguity = (
+        result["category_lower_bound"] != result["category_upper_bound"]
+    )
+    result["category_is_ambiguous"] = ambiguity.astype("boolean").mask(
+        ~valid_categories, pd.NA
     )
     return result
 
