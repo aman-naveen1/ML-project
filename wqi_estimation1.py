@@ -19,15 +19,28 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_path = Path(__file__).resolve().parent / "DOC-20261117-WA0000.csv"
+DATA_FILE = "DOC-20261117-WA0000.csv"
+
+try:
+    script_folder = Path(__file__).resolve().parent
+except NameError:
+    script_folder = Path.cwd()
+
+data_path = script_folder / DATA_FILE
 
 if not data_path.exists():
     try:
         from google.colab import files
-        files.upload()
+        uploaded = files.upload()
+        if DATA_FILE in uploaded:
+            data_path = Path.cwd() / DATA_FILE
+        elif uploaded:
+            data_path = Path(next(iter(uploaded)))
+        else:
+            raise FileNotFoundError("No dataset was uploaded.")
     except ImportError:
         raise FileNotFoundError(
-            f"Dataset not found: {data_path}. Keep DOC-20261117-WA0000.csv "
+            f"Dataset not found: {data_path}. Keep {DATA_FILE} "
             "in the same folder as this script."
         )
 
