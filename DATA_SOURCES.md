@@ -10,15 +10,14 @@
 ## Additional annual station-level dataset
 
 - **File in this repository:** `data/external/RiverWaterQualityOverYears.csv`
-- **Upstream file:** [RiverWaterQualityOverYears.csv](https://github.com/KunalLatkar/RiverWaterQualityDataset/blob/main/RiverWaterQualityOverYears.csv)
-- **Upstream repository and documentation:** [KunalLatkar/RiverWaterQualityDataset](https://github.com/KunalLatkar/RiverWaterQualityDataset)
-- **Original authority portal identified by the upstream repository:** [CPCB NWMP data](https://cpcb.nic.in/nwmp-data-2023/)
+- **Source type:** external annual station-level water-quality dataset.
+- **CPCB reference:** [Central Pollution Control Board — NWMP data](https://cpcb.nic.in/nwmp-data-2023/), identified in the external dataset's accompanying documentation as the underlying monitoring programme.
 - **Retrieved for this project:** 18 November 2026.
 - **Recorded coverage in the checked-in file:** 10,006 records in 2012–2014 and 2017–2023. The file contains annual station-level minima and maxima, not individual sample measurements.
 
-The upstream repository states that this dataset was gathered from the CPCB portal. This project attributes the file to that repository and records the CPCB portal as the upstream authority identified by its author. The checked-in CSV was obtained from the repository's raw annual min/max file; this project has not independently reconciled every row against CPCB's original downloadable annual files. Therefore, describe it as **CPCB-derived via the upstream repository**, not as a directly downloaded or independently verified CPCB extract.
+The external dataset documentation identifies CPCB's National Water Quality Monitoring Programme (NWMP) as its underlying source. The checked-in CSV is treated as an external source dataset; this project has not independently reconciled every row against CPCB's original downloadable annual files. Accordingly, this repository does not claim that the CSV was downloaded directly from CPCB or independently verified against the original CPCB records.
 
-The upstream repository also publishes a separately preprocessed CSV and describes imputation, outlier treatment, and a derived `Contaminated` label. This project uses the raw annual min/max CSV instead. It does not import that derived label or impute missing measurements.
+This project uses the supplied annual min/max data for coverage and interval analysis. It does not use externally derived contamination labels or impute missing measurements.
 
 ## Appropriate use and limitations
 
@@ -28,4 +27,4 @@ The two datasets have different temporal and measurement granularity. Their over
 
 ## Retrieval and reproducibility note
 
-The source URLs and retrieval date above identify the upstream materials used when this repository copy was added. The checked-in CSV preserves the raw annual min/max source file used by the analysis; no automated refresh is performed. If the upstream file changes, re-check its schema, record count, year coverage, and provenance before replacing this copy.
+The CPCB portal link is provided as a reference to the monitoring programme identified by the external dataset documentation. The checked-in CSV is retained as the external source file used by this analysis; no automated refresh is performed. If the file changes, re-check its schema, record count, year coverage, and provenance before replacing this copy.
