@@ -118,6 +118,37 @@ class ExternalDatasetTests(unittest.TestCase):
         self.assertTrue(loaded.empty)
         self.assertEqual(stats["invalid_bound_rows_excluded"], 1)
 
+    def test_checked_in_external_dataset_loads_and_produces_valid_envelopes(self):
+        project_root = Path(__file__).resolve().parents[1]
+        source_path = project_root / "data" / "external" / "RiverWaterQualityOverYears.csv"
+        self.assertTrue(source_path.is_file(), "Checked-in external dataset is missing")
+
+        loaded, stats = load_external_data(source_path)
+        self.assertEqual(stats["source_rows"], 10006)
+        self.assertEqual(
+            stats["years"],
+            [2012, 2013, 2014, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
+        )
+        self.assertEqual(stats["retained_rows"] + stats["rows_missing_year"] +
+                         stats["invalid_bound_rows_excluded"], stats["source_rows"])
+        self.assertEqual(
+            stats["complete_wqi_rows"] + stats["incomplete_wqi_rows"],
+            stats["retained_rows"],
+        )
+        self.assertEqual(set(stats["parameter_complete_rows"]), set(STANDARDS))
+
+        intervals = calculate_wqi_interval(loaded)
+        complete = intervals.dropna(
+            subset=["wqi_lower_bound", "wqi_upper_bound"]
+        )
+        self.assertGreater(len(complete), 0)
+        self.assertTrue(
+            (complete["wqi_lower_bound"] <= complete["wqi_upper_bound"]).all()
+        )
+        self.assertTrue(
+            np.isfinite(complete[["wqi_lower_bound", "wqi_upper_bound"]].to_numpy()).all()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
