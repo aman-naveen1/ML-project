@@ -28,7 +28,7 @@ The dataset contains **1,991 records** from 2003–2014. After duplicate removal
 
 The project uses the Kaggle dataset [Indian Water Quality Data](https://www.kaggle.com/datasets/anbarivan/indian-water-quality-data).
 
-The raw CSV is included in this repository as `DOC-20261117-WA0000.csv`. The Python script currently looks for a file named `water_dataX.csv` in the working directory. Rename or copy the downloaded CSV to that name before running the script.
+The raw CSV is included in this repository as `DOC-20261117-WA0000.csv`. The script reads this file directly from the same folder as `wqi_estimation1.py`; no renaming or copying is required.
 
 The measurements used include:
 
@@ -139,25 +139,15 @@ Install the dependencies:
 pip install -r requirements.txt
 ```
 
-Make the dataset available under the filename expected by the script:
+The dataset is already included in the repository. Keep `DOC-20261117-WA0000.csv` in the repository folder and run:
 
-**Windows (PowerShell):**
-```powershell
-Copy-Item DOC-20261117-WA0000.csv water_dataX.csv
-```
 
-**macOS / Linux:**
-```bash
-cp DOC-20261117-WA0000.csv water_dataX.csv
-```
-
-Run the project:
 
 ```bash
 python wqi_estimation1.py
 ```
 
-The script includes a Google Colab upload fallback when the expected CSV is not found. For the Colab workflow, open the [notebook](https://colab.research.google.com/drive/1pJZ5Vrkecg026V1rlan2kHZqa10tQvUG?usp=sharing) and follow its cells.
+If the CSV is not found, the script offers a Google Colab upload fallback. For the Colab workflow, open the [notebook](https://colab.research.google.com/drive/1pJZ5Vrkecg026V1rlan2kHZqa10tQvUG?usp=sharing) and follow its cells.
 
 ## Dependencies
 
