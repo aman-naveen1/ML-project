@@ -24,6 +24,13 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Run complete experiment
         run: python run_experiments.py --data DOC-20261117-WA0000.csv
+      - name: Run external dataset analysis
+        run: python analyze_external_dataset.py
+      - name: Verify external analysis outputs
+        run: |
+          test -s outputs/external_dataset/external_wqi_intervals.csv
+          test -s outputs/external_dataset/external_yearly_summary.csv
+          test -s outputs/external_dataset/external_dataset_summary.txt
       - name: Upload experiment outputs
         uses: actions/upload-artifact@v4
         with:
