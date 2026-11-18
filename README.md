@@ -137,7 +137,7 @@ The following are the previously reproduced results from the full experiment. Th
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
 |---|---:|---:|---:|---:|
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
-| Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
+| Station-majority | 0.735 | 0.747 | 0.735 | 0.747 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
 | k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
@@ -147,6 +147,15 @@ The following are the previously reproduced results from the full experiment. Th
 **Interpretation:** Set A Gradient Boosting reaches RMSE 0.823 and R² 0.997, but this is expected to be optimistic as the target is calculated from the same measurements. Set B is the more realistic reduced-measurement task. Its best regression result (RMSE 11.324) is worse than the station-mean baseline (RMSE 7.930). This baseline comparison is a central finding, not something to hide.
 
 The earlier report's Set A classification result (93.9% accuracy, macro-F1 0.937) differs from the regenerated year-blocked result (93.3%, 0.930). The current pipeline result is reported rather than silently mixing metrics from different evaluation procedures.
+
+## Submitted PDF and reproducibility note
+
+The submitted PDF is retained as the fixed coursework document. The current repository pipeline is the executable source of truth for regenerated outputs. Some reported classification scores differ slightly from the PDF; do not describe the two result sets as identical. The workflow now also regenerates the supporting diagnostic figures and classification diagnostics for both feature sets. A result in the PDF that is not produced by the current pipeline (including its separate random 70/30 split result) must be treated as a historical report result, not as a verified output of this script.
+
+
+### Secondary random-split diagnostic
+
+The pipeline also runs a reproducible 70/30 random split on the complete WQI dataset (seed 42) for the Set B Random Forest, with a shuffled five-fold grid-search CV on the random training partition. It writes `outputs/random_split_comparison.csv` and records the result in `outputs/run_summary.txt`. This is a diagnostic reproduction of the report's comparison, not the primary score: random splitting allows observations from the same stations and years to appear on both sides and is therefore more optimistic than the chronological holdout. The exact RMSE is taken from the generated output, not hard-coded to the PDF's 9.48.
 
 ## 7. Limitations and threats to validity
 

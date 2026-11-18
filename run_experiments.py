@@ -35,7 +35,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -261,9 +261,15 @@ def run_regression(train, test, features, label, cv, report_lines, output_dir):
         n_repeats=20, random_state=42, n_jobs=-1
     )
     imp = pd.DataFrame({"feature": features, "rmse_increase": importance.importances_mean})
-    imp.sort_values("rmse_increase", ascending=False).to_csv(
-        output_dir / f"importance_{label}.csv", index=False
-    )
+    imp = imp.sort_values("rmse_increase", ascending=False)
+    imp.to_csv(output_dir / f"importance_{label}.csv", index=False)
+    plt.figure(figsize=(7, 4))
+    plt.barh(imp["feature"][::-1], imp["rmse_increase"][::-1])
+    plt.xlabel("Increase in test RMSE when shuffled")
+    plt.title(f"Permutation importance — set {label} ({best_name})")
+    plt.tight_layout()
+    plt.savefig(output_dir / f"permutation_importance_{label}.png", dpi=180)
+    plt.close()
     return result, best_name, best_model, X_test, y_test
 
 
@@ -301,18 +307,38 @@ def run_classification(train, test, features, label, cv, report_lines, output_di
             f"Classification {label} | {name}: best_params={search.best_params_}; "
             f"accuracy={rows[-1]['accuracy']:.3f}; macro_F1={rows[-1]['macro_f1']:.3f}"
         )
-        if name == "Gradient boosting" and label == "A":
+        if name == "Gradient boosting":
             pd.DataFrame(
                 confusion_matrix(y_test, pred, labels=CLASS_NAMES),
                 index=CLASS_NAMES, columns=CLASS_NAMES
-            ).to_csv(output_dir / "confusion_matrix_A.csv")
-            (output_dir / "classification_report_A.txt").write_text(
+            ).to_csv(output_dir / f"confusion_matrix_{label}.csv")
+            (output_dir / f"classification_report_{label}.txt").write_text(
                 classification_report(y_test, pred, labels=CLASS_NAMES, zero_division=0)
             )
     result = pd.DataFrame(rows)
     result.to_csv(output_dir / f"classification_{label}.csv", index=False)
     return result
 
+
+def run_random_split_comparison(water: pd.DataFrame, output_dir: Path) -> dict:
+    """Secondary random 70/30 Set B comparison; chronological holdout stays primary."""
+    train, test = train_test_split(water, test_size=0.30, random_state=42, shuffle=True)
+    X_train = transform_features(train, FIELD_FEATURES)
+    X_test = transform_features(test, FIELD_FEATURES)
+    y_train, y_test = train["wqi"], test["wqi"]
+    cv = KFold(n_splits=5, shuffle=True, random_state=42)
+    estimator = make_pipeline(RandomForestRegressor(random_state=42, n_jobs=-1))
+    grid = {"model__max_depth": [5, 10, None], "model__min_samples_leaf": [1, 5, 10]}
+    search = GridSearchCV(estimator, grid, scoring="neg_root_mean_squared_error", cv=cv, n_jobs=-1, refit=True)
+    search.fit(X_train, y_train)
+    prediction = search.predict(X_test)
+    mean_prediction = np.full(len(test), y_train.mean())
+    station_prediction = station_baselines(train, test, "wqi")
+    rows = []
+    for name, predicted in [("Random Forest (Set B)", prediction), ("Mean baseline", mean_prediction), ("Station-mean baseline", station_prediction)]:
+        rows.append({"model": name, "split": "random 70/30", "random_state": 42, "test_size": 0.30, "train_rows": len(train), "test_rows": len(test), "RMSE": np.sqrt(mean_squared_error(y_test, predicted)), "R2": r2_score(y_test, predicted)})
+    pd.DataFrame(rows).to_csv(output_dir / "random_split_comparison.csv", index=False)
+    return {"random_rf_rmse": float(rows[0]["RMSE"]), "random_rf_r2": float(rows[0]["R2"]), "random_rf_params": search.best_params_, "random_train_rows": len(train), "random_test_rows": len(test)}
 
 def main():
     parser = argparse.ArgumentParser()
@@ -323,6 +349,16 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    raw_data = pd.read_csv(data_path, encoding="latin-1")
+    plt.figure(figsize=(8, 4))
+    missing_pct = raw_data.isna().mean().mul(100).sort_values(ascending=False)
+    missing_pct.plot(kind="bar")
+    plt.ylabel("Missing values (%)")
+    plt.title("Missing values by source column")
+    plt.tight_layout()
+    plt.savefig(output_dir / "missing_values.png", dpi=180)
+    plt.close()
+
     data, cleaning = load_and_clean(data_path)
     water, weights = calculate_wqi(data)
     train = water[water["year"] <= 2012].copy()
@@ -331,6 +367,7 @@ def main():
         raise ValueError("The chronological split requires training years <=2012 and test years >=2013.")
 
     cv = make_year_based_splits(train)
+    random_result = run_random_split_comparison(water, output_dir)
     lines = [
         f"Raw rows: {cleaning['raw_rows']}",
         f"Complete WQI rows: {cleaning['clean_complete_rows']}",
@@ -342,9 +379,41 @@ def main():
         f"min={water['wqi'].min():.3f}; max={water['wqi'].max():.3f}",
         f"Weights: {weights}",
         f"Category counts: {water['category'].value_counts().to_dict()}",
+        "Secondary random 70/30 Set B comparison (seed=42; diagnostic only): "
+        f"Random Forest RMSE={random_result['random_rf_rmse']:.3f}; R2={random_result['random_rf_r2']:.3f}; "
+        f"train={random_result['random_train_rows']}; test={random_result['random_test_rows']}; "
+        f"best_params={random_result['random_rf_params']}",
     ]
 
     water.to_csv(output_dir / "wqi_dataset.csv", index=False)
+
+    correlation = water[ALL_FEATURES + ["wqi"]].corr(method="spearman")
+    plt.figure(figsize=(8, 6))
+    plt.imshow(correlation, aspect="auto", cmap="coolwarm", vmin=-1, vmax=1)
+    plt.colorbar(label="Spearman correlation")
+    plt.xticks(range(len(correlation.columns)), correlation.columns, rotation=45, ha="right")
+    plt.yticks(range(len(correlation.index)), correlation.index)
+    plt.title("Spearman correlation matrix")
+    plt.tight_layout()
+    plt.savefig(output_dir / "spearman_correlation.png", dpi=180)
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(9, 2.5))
+    ax.axis("off")
+    stages = ["Raw CSV", "Cleaning", "WQI calculation", "Year split", "Model pipelines", "Evaluation"]
+    for i, stage in enumerate(stages):
+        x = 0.02 + i * 0.163
+        ax.text(x, 0.5, stage, ha="center", va="center",
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="black"),
+                transform=ax.transAxes, fontsize=8)
+        if i < len(stages) - 1:
+            ax.annotate("", xy=(x + 0.145, 0.5), xytext=(x + 0.095, 0.5),
+                        xycoords=ax.transAxes, textcoords=ax.transAxes,
+                        arrowprops=dict(arrowstyle="->"))
+    plt.tight_layout()
+    plt.savefig(output_dir / "methodology_pipeline.png", dpi=180)
+    plt.close()
+
     all_regression = []
     all_classification = []
     for label, features in [("A", ALL_FEATURES), ("B", FIELD_FEATURES)]:

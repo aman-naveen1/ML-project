@@ -119,7 +119,7 @@ For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baselin
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
 |---|---:|---:|---:|---:|
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
-| Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
+| Station-majority | 0.735 | 0.747 | 0.735 | 0.747 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
 | k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
@@ -134,6 +134,15 @@ The Set A Gradient Boosting classifier records 93.3% accuracy and 0.930 macro-F1
 2. Field-only prediction is substantially more difficult.
 3. The station-mean baseline outperforms the recorded Set B regression models.
 4. The model's apparent performance depends strongly on the feature set and validation design.
+
+### Relationship to the submitted PDF
+
+The submitted PDF is the fixed coursework document and is not modified by this repository update. Some classification scores differ slightly from the current year-blocked pipeline results. The current code and its regenerated output files should be used when demonstrating execution; the PDF's separate random 70/30 split result is not reproduced by the present script and should not be claimed as a current pipeline output.
+
+
+### Secondary random-split diagnostic
+
+A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The exact RMSE is generated in `outputs/random_split_comparison.csv` and is not hard-coded to the submitted PDF's 9.48.
 
 ## 5. Discussion
 
