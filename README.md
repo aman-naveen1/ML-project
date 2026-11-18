@@ -27,6 +27,8 @@ The analysis assigns stable project column names after reading the source CSV. S
 
 The dataset is a secondary compilation. Units and source definitions are retained as documented; they should be checked against the original monitoring authority before operational use.
 
+See [DATA_SOURCES.md](DATA_SOURCES.md) for source URLs, retrieval date, attribution boundaries, and the provenance caveats for the additional annual station-level dataset.
+
 ## 3. WQI definition and assumptions
 
 The index uses seven measurements: pH, dissolved oxygen (DO), biochemical oxygen demand (BOD), conductivity, nitrate/nitrite nitrogen, faecal coliform, and total coliform.
@@ -193,8 +195,13 @@ ML-project/
 ├── DOC-20261117-WA0000.csv
 ├── wqi_estimation1.py
 ├── run_experiments.py
+├── analyze_external_dataset.py
+├── data/
+│   └── external/
+│       └── RiverWaterQualityOverYears.csv
 ├── tests/
-│   └── test_wqi.py
+│   ├── test_wqi.py
+│   └── test_external_dataset.py
 ├── .github/workflows/
 │   └── tests.yml
 ├── DATA_DICTIONARY.md
@@ -215,3 +222,41 @@ ML-project/
 ## Academic integrity
 
 This repository documents the data, assumptions, methods, outputs, and limitations used in the project. Any submitted report should be reviewed by the student, accurately reflect the final executed code, and follow the institution's citation and AI-use rules.
+
+
+## External recent-period dataset (2012–2023)
+
+A second, independent repository copy is included at
+`data/external/RiverWaterQualityOverYears.csv`. It is attributed to
+[KunalLatkar/RiverWaterQualityDataset](https://github.com/KunalLatkar/RiverWaterQualityDataset),
+whose README describes the data as compiled from the CPCB NWMP portal for
+2012–2023. The checked-in file is the source repository's raw annual
+station-level minimum/maximum dataset, not its separately preprocessed file.
+
+This source has 10,006 data records, 22 columns and observations in 2012–2014
+and 2017–2023 (no 2015 or 2016 records in this file). It reports annual
+minimum/maximum values rather than individual sample-level observations.
+Accordingly, `analyze_external_dataset.py` computes a parameter-bound WQI
+envelope and yearly coverage summaries. It imports the same WQI standards and
+weights used by `run_experiments.py`, rather than maintaining a second set of
+thresholds. Invalid/reversed bounds are excluded and completeness is reported
+by parameter and year; missing values are not imputed. Incomplete rows retain
+missing WQI bounds and are excluded from WQI summaries. The envelope is not a
+confidence interval or a sample-level WQI label: annual extrema for different
+parameters may have occurred on different dates.
+
+Run:
+
+```bash
+python analyze_external_dataset.py
+```
+
+Outputs are written to `outputs/external_dataset/`. The analysis deliberately
+does not fill missing source measurements with imputed values and does not
+train or claim to externally validate the original row-level ML models.
+Overlapping years (2012–2014) are useful for checking broad consistency, but
+the different annual min/max aggregation means they are not directly
+comparable to the original dataset's individual records. The source repository
+also documents preprocessing and a derived contamination label; this project
+does not use that preprocessed label or claim it is an independent ground
+truth.
