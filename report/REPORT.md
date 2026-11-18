@@ -45,6 +45,16 @@ The project uses the Indian Water Quality Data dataset, distributed through Kagg
 
 The fields include station code, location, state, temperature, dissolved oxygen, pH, conductivity, biochemical oxygen demand, nitrate/nitrite nitrogen, faecal coliform, total coliform, and year. Field definitions and units are documented in `DATA_DICTIONARY.md`.
 
+The source contains 1,991 records across 12 fields. After requiring complete values for all seven WQI inputs, the recorded experiment retained 1,572 observations (about 79% of the original rows). This complete-case requirement applies to WQI construction; predictive-feature imputation is handled separately inside model pipelines.
+
+**Figure 1. Missing-value profile of the source dataset**
+
+![Missing-value profile](../output/fig1_missing.png)
+
+**Figure 2. Annual distribution of calculated WQI values**
+
+![WQI by year](../output/fig3_wqi_by_year.png)
+
 ### 2.2 Cleaning
 
 Measurements are converted to numeric values; non-numeric tokens are treated as missing. Duplicate records are removed. pH outside the physically valid range 0–14 is marked missing. Records missing any of the seven WQI inputs are excluded from WQI calculation. Missing predictive features are imputed within model pipelines, so imputation statistics are learned from training data only.
@@ -80,6 +90,10 @@ The project maps WQI ≤ 50 to Good / Excellent, WQI > 50 and ≤ 75 to Poor, an
 
 Set A includes the variables used in the WQI formula. Consequently, high predictive performance on Set A is expected to reflect reconstruction of the target formula. Set B tests the more constrained field-measurement use case.
 
+**Figure 3. Spearman correlations among project variables**
+
+![Spearman correlation heatmap](../output/fig4_spearman.png)
+
 ### 3.3 Models and baselines
 
 Regression models: Linear Regression, Ridge Regression, k-Nearest Neighbours, RBF Support Vector Regression, Decision Tree, Random Forest, and Gradient Boosting.
@@ -91,6 +105,20 @@ Baselines: training-mean and station-mean regression; majority-class and station
 ### 3.4 Validation design
 
 Observations are split chronologically: training through 2012 and testing on 2013–2014. Hyperparameters are selected with expanding year-blocked validation folds within the training period. Preprocessing is embedded in scikit-learn pipelines to prevent imputation and scaling from using test-fold statistics.
+
+The overall workflow is summarised below.
+
+```mermaid
+flowchart TD
+    A[River monitoring dataset] --> B[Data cleaning and validation]
+    B --> C[Calculate weighted-arithmetic WQI]
+    C --> D[Create Set A and Set B features]
+    D --> E[Chronological train-test split]
+    E --> F[Year-blocked model selection]
+    F --> G[Regression and classification]
+    G --> H[Compare with simple baselines]
+    H --> I[Evaluate and interpret results]
+```
 
 Regression is evaluated using MAE, RMSE, and R². Classification is evaluated using accuracy and macro-F1, with confusion matrix and per-class report generated for Set A. Permutation importance is computed on the held-out test set.
 
@@ -114,6 +142,10 @@ Set A Gradient Boosting produces the lowest recorded RMSE (0.823) and highest R�
 
 For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baseline has RMSE 7.930, so the field-only machine-learning regressors do not outperform this simple benchmark in the recorded experiment.
 
+**Figure 4. Observed versus predicted WQI on the held-out data**
+
+![Observed versus predicted WQI](../output/fig5_obs_vs_pred.png)
+
 ### 4.2 Classification
 
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
@@ -127,6 +159,10 @@ For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baselin
 | Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
 
 The Set A Gradient Boosting classifier records 93.3% accuracy and 0.930 macro-F1. The earlier report contains 93.9% and 0.937; the difference is retained transparently because the current pipeline uses year-blocked hyperparameter validation.
+
+**Figure 5. Permutation importance for the selected model**
+
+![Permutation feature importance](../output/fig6_permutation_importance.png)
 
 ### 4.3 Summary of findings
 
@@ -143,6 +179,17 @@ The submitted PDF is the fixed coursework document and is not modified by this r
 ### Secondary random-split diagnostic
 
 A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The exact RMSE is generated in `outputs/random_split_comparison.csv` and is not hard-coded to the submitted PDF's 9.48.
+
+### 4.4 Main results at a glance
+
+| Evaluation setting | Best recorded result | Interpretation |
+|---|---|---|
+| Set A regression | Gradient Boosting: RMSE 0.823; R² 0.997 | Strong reconstruction of the formula-derived target |
+| Set B regression | Random Forest: RMSE 11.324; R² 0.440 | Limited predictive performance |
+| Set B baseline comparison | Station mean RMSE 7.930 | Baseline is better than the tested Set B regressors |
+| Set A classification | Gradient Boosting: 93.3% accuracy; macro-F1 0.930 | Strong category reproduction when all WQI inputs are available |
+
+The headline scores should always be read alongside the feature-set definition and baseline comparison. In particular, the Set A score is not evidence of independent water-quality prediction.
 
 ## 5. Discussion
 
