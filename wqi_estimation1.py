@@ -14,17 +14,26 @@ This notebook uses water quality data to calculate the Water Quality Index and p
 """
 
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-if not os.path.exists("water_dataX.csv"):
-    from google.colab import files
-    uploaded = files.upload()
+data_path = Path(__file__).resolve().parent / "DOC-20261117-WA0000.csv"
+
+if not data_path.exists():
+    try:
+        from google.colab import files
+        files.upload()
+    except ImportError:
+        raise FileNotFoundError(
+            f"Dataset not found: {data_path}. Keep DOC-20261117-WA0000.csv "
+            "in the same folder as this script."
+        )
 
 """## Step 2: Read the data"""
 
-data = pd.read_csv("water_dataX.csv", encoding="latin-1")
+data = pd.read_csv(data_path, encoding="latin-1")
 data.head()
 
 """## Step 3: Clean the data"""
