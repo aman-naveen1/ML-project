@@ -1,50 +1,57 @@
 # Water Quality Index Estimation for Indian Rivers
 
-A Machine Learning course project that calculates a weighted-arithmetic Water Quality Index (WQI) from Indian river-monitoring measurements, then compares regression and classification models.
+**Machine Learning course project | SDG 6: Clean Water and Sanitation | SDG 14: Life Below Water**
 
-**Author:** Aman Naveen  
-**Department:** Computer Science, Ramanujan College, University of Delhi  
-**Supervisor:** Mr Nikhil Kumar Rajput  
-**Course:** Machine Learning
+A reproducible study of river-water quality in India. The project calculates a weighted-arithmetic Water Quality Index (WQI), compares regression and classification models, tests whether a reduced set of field measurements can estimate WQI, and documents where the models do and do not generalise.
 
-## Project objectives
+> This repository is being organised as a research-style submission: documented data provenance, explicit assumptions, reproducible experiments, validation tests, machine-readable results, figures, and a report. Model scores are not presented as proof of real-world pollution measurement.
 
-- Clean river-monitoring measurements and handle invalid pH values.
-- Calculate a WQI from seven water-quality parameters.
-- Classify observations as Good / Excellent, Poor, or Very Poor.
-- Compare regression and classification algorithms.
-- Test whether quick field measurements can estimate WQI when laboratory measurements are unavailable.
-- Identify the parameters most influential to model predictions.
+## 1. Research questions
 
-## Dataset
+1. How does the weighted-arithmetic WQI vary across the available Indian river-monitoring observations?
+2. How accurately can machine-learning models reproduce the calculated WQI and its project-defined categories?
+3. How much predictive information is lost when only quick field measurements are available?
+4. Do the models outperform simple mean and station-based baselines?
+5. What limitations arise from formula-derived targets, repeated monitoring stations, and the available time resolution?
 
-The project uses the Kaggle dataset [Indian Water Quality Data](https://www.kaggle.com/datasets/anbarivan/indian-water-quality-data). The original CSV is included as `DOC-20261117-WA0000.csv` (1,991 records, 2003–2014).
+## 2. Dataset and provenance
 
-The WQI calculation requires pH, dissolved oxygen, BOD, conductivity, nitrate, fecal coliform and total coliform. Rows missing one of these required measurements are excluded from WQI analysis. Temperature is retained as a model feature but is not part of the WQI formula, so missing temperature values are imputed inside the model pipeline.
+- **Dataset:** Indian Water Quality Data, originally published on Kaggle.
+- **Repository copy:** `DOC-20261117-WA0000.csv`.
+- **Raw size:** 1,991 records and 12 columns.
+- **Coverage:** 2003–2014.
+- **Encoding:** Latin-1.
+- **Source fields:** station code, location, state, temperature, dissolved oxygen, pH, conductivity, BOD, nitrate/nitrite nitrogen, faecal coliform, total coliform, and year.
 
-## WQI method
+The analysis assigns stable project column names after reading the source CSV. See [DATA_DICTIONARY.md](DATA_DICTIONARY.md) for field mapping, units, use in the models, and cleaning rules.
 
-The project uses the weighted arithmetic method:
+The dataset is a secondary compilation. Units and source definitions are retained as documented; they should be checked against the original monitoring authority before operational use.
 
-```
-Qi = 100 × (Vi - Videal,i) / (Si - Videal,i)
-Wi = K / Si, where K = 1 / sum(1 / Si)
-WQI = sum(Wi × Qi)
-```
+## 3. WQI definition and assumptions
 
-The pH rating uses the absolute deviation from the ideal pH of 7. Dissolved oxygen uses an ideal value of 14.6 mg/L. Quality ratings are clipped to 0–100 before aggregation.
+The index uses seven measurements: pH, dissolved oxygen (DO), biochemical oxygen demand (BOD), conductivity, nitrate/nitrite nitrogen, faecal coliform, and total coliform.
 
-| Parameter | Standard used | Weight (approx.) |
-|---|---:|---:|
-| pH | 8.5 | 15.6% |
-| Dissolved oxygen | 5 mg/L | 26.5% |
-| BOD | 3 mg/L | 44.1% |
-| Conductivity | 2,250 µmhos/cm | 0.06% |
-| Nitrate + nitrite-N | 10 mg/L | 13.2% |
-| Fecal coliform | 500 MPN/100 mL | 0.26% |
-| Total coliform | 500 MPN/100 mL | 0.26% |
+For parameter (i):
 
-The nitrate and fecal-coliform standards are project assumptions because the cited CPCB designated-use criteria do not specify those exact limits. The resulting index is a research calculation, not an official CPCB compliance rating.
+`Qi = 100 × (Vi − Videal,i) / (Si − Videal,i)`
+
+`Wi = K / Si,  where K = 1 / Σ(1 / Si)`
+
+`WQI = Σ(Wi × Qi)`
+
+The implementation uses ideal pH 7, ideal DO 14.6 mg/L, and the project standards documented in the methodology. Quality ratings are clipped to 0–100 before aggregation. These choices materially affect the index.
+
+| Parameter | Project standard |
+|---|---:|
+| pH | 8.5 |
+| DO | 5 mg/L |
+| BOD | 3 mg/L |
+| Conductivity | 2,250 µmhos/cm |
+| Nitrate + nitrite nitrogen | 10 mg/L |
+| Faecal coliform | 500 MPN/100 mL |
+| Total coliform | 500 MPN/100 mL |
+
+**Important:** nitrate and faecal-coliform limits are project assumptions, not claims that these exact values are CPCB designated-use standards. The computed WQI is an educational/research index, not an official regulatory classification.
 
 | WQI | Project category |
 |---:|---|
@@ -52,54 +59,64 @@ The nitrate and fecal-coliform standards are project assumptions because the cit
 | > 50 to 75 | Poor |
 | > 75 | Very Poor |
 
-## Experimental design
+## 4. Data preparation
 
-The full experiment is implemented in `run_experiments.py`.
+The reproducible pipeline:
 
-Two feature sets are compared:
+1. Reads the checked-in CSV using Latin-1 encoding.
+2. Assigns the 12 documented project column names.
+3. Converts measurement fields to numeric values; non-numeric markers become missing.
+4. Removes duplicate rows.
+5. Treats pH values outside 0–14 as invalid.
+6. Excludes rows missing any WQI input from WQI calculation.
+7. Sorts observations by year.
+8. Fits imputers and scalers inside model pipelines, using training folds only.
 
-- **Set A — all measurements:** temperature, dissolved oxygen, pH, conductivity, BOD, nitrate, fecal coliform and total coliform.
-- **Set B — quick field measurements:** temperature, dissolved oxygen, pH and conductivity.
+The experiment retained 1,572 complete WQI observations in the previously recorded run. The exact counts are regenerated on each run and written to `outputs/run_summary.txt`.
 
-The data is sorted by year and split chronologically: training uses records through 2012; testing uses 2013–2014. Hyperparameters are selected using five-fold forward-chaining cross-validation on the training data. Imputation and standardisation are fitted within model pipelines to avoid using test-set statistics.
+## 5. Experimental design
+
+### Chronological holdout
+
+- **Training:** observations through 2012.
+- **Testing:** observations from 2013–2014.
+
+Hyperparameter selection uses expanding, year-blocked validation folds within the training period. The held-out 2013–2014 observations are not used for model selection.
+
+### Feature sets
+
+- **Set A — all measurements:** temperature, DO, pH, conductivity, BOD, nitrate, faecal coliform, total coliform.
+- **Set B — field-only measurements:** temperature, DO, pH, conductivity.
+
+Set A includes measurements that are themselves inputs to the WQI formula. Its high scores therefore primarily show how well a model can approximate a constructed mathematical index; they do not establish independent water-quality sensing.
 
 ### Models
 
-**Regression:** Linear Regression, Ridge Regression, k-NN, RBF Support Vector Regression, Decision Tree, Random Forest and Gradient Boosting.
+**Regression:** Linear Regression, Ridge Regression, k-NN, RBF Support Vector Regression, Decision Tree, Random Forest, Gradient Boosting.
 
-**Classification:** Logistic Regression, k-NN, Decision Tree, Random Forest and Gradient Boosting.
+**Classification:** Logistic Regression, k-NN, Decision Tree, Random Forest, Gradient Boosting.
 
-The script also compares a training-mean baseline and a station-mean baseline. Regression is evaluated with MAE, RMSE and R². Classification is evaluated with accuracy and macro-F1.
+**Baselines:** training-mean and station-mean for regression; majority-class and station-majority for classification.
 
-## Run the full experiment
+### Evaluation
 
-Python 3.10 or later is recommended.
+- Regression: MAE, RMSE, R².
+- Classification: accuracy, macro-F1, confusion matrix, per-class precision/recall/F1.
+- Model interpretation: permutation feature importance on the held-out test set.
+- Reproducibility: fixed random seeds, explicit preprocessing pipelines, automated unit tests, and saved outputs.
 
-```bash
-git clone https://github.com/aman-naveen1/ML-project.git
-cd ML-project
-pip install -r requirements.txt
-python run_experiments.py --data DOC-20261117-WA0000.csv
-```
+## 6. Recorded results
 
-The script creates an `outputs/` folder containing:
-- WQI-enriched dataset
-- Regression and classification metric tables for both feature sets
-- Confusion matrix and classification report
-- Permutation feature-importance tables
-- Observed-versus-predicted and yearly WQI plots
-- A run summary with cleaning counts, selected hyperparameters and evaluation results
+The following are the previously reproduced results from the full experiment. They must be regenerated after code changes before being treated as the final run for a submission.
 
-## Reproduced results
+### Dataset split
 
-The complete pipeline was executed in GitHub Actions against the repository CSV. The run reproduced the cleaning counts and chronological split:
-
-- 1,991 raw rows
-- 1,572 complete WQI records
-- 1,111 training records (through 2012)
-- 461 test records (2013–2014)
-
-Hyperparameter selection uses five expanding, year-blocked validation folds. This keeps each validation year separate from its training years.
+| Quantity | Count |
+|---|---:|
+| Raw records | 1,991 |
+| Complete WQI records | 1,572 |
+| Training records (through 2012) | 1,111 |
+| Test records (2013–2014) | 461 |
 
 ### Regression
 
@@ -127,36 +144,65 @@ Hyperparameter selection uses five expanding, year-blocked validation folds. Thi
 | Random Forest | 0.913 | 0.905 | 0.616 | 0.627 |
 | Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
 
-The Set A Gradient Boosting regression result is R² = 0.997 and RMSE = 0.823. For Set B, Random Forest gives RMSE = 11.324 and R² = 0.440. The station-mean baseline (RMSE = 7.930) outperforms every Set B regression model.
+**Interpretation:** Set A Gradient Boosting reaches RMSE 0.823 and R² 0.997, but this is expected to be optimistic as the target is calculated from the same measurements. Set B is the more realistic reduced-measurement task. Its best regression result (RMSE 11.324) is worse than the station-mean baseline (RMSE 7.930). This baseline comparison is a central finding, not something to hide.
 
-The earlier submitted report records 93.9% accuracy and 0.937 macro-F1 for Set A Gradient Boosting classification. The current reproducible pipeline gives 93.3% and 0.930. The updated implementation uses year-blocked forward validation for hyperparameter selection, so the regenerated metrics are used here rather than silently retaining the earlier figures.
+The earlier report's Set A classification result (93.9% accuracy, macro-F1 0.937) differs from the regenerated year-blocked result (93.3%, 0.930). The current pipeline result is reported rather than silently mixing metrics from different evaluation procedures.
 
-The detailed regenerated tables, confusion matrix, classification report, feature-importance files and plots are produced by the GitHub Actions workflow and attached as the `wqi-experiment-outputs` artifact. See [the successful experiment run](https://github.com/aman-naveen1/ML-project/actions/runs/44308828024). The same detailed metrics are recorded in `results.txt`.
+## 7. Limitations and threats to validity
 
-## Interpretation and limitations
+1. **Formula-derived target:** Set A learns a target calculated from the same inputs. Its high performance is not independent validation of water quality.
+2. **Station overlap:** most test stations also occur in training. The experiment does not establish performance on entirely unseen stations.
+3. **Weak field-only regression:** the station-mean baseline outperforms the best Set B regressor on the recorded holdout.
+4. **Standards sensitivity:** WQI weights and ratings depend on chosen standards, including project assumptions for some parameters.
+5. **Temporal resolution:** year-level observations do not support seasonal analysis.
+6. **Secondary data quality:** source units, missingness, station metadata, and historical measurement practices may vary.
+7. **No causal claims:** model feature importance and cross-sectional patterns do not establish that changing a parameter causes a particular change in water quality.
 
-- The very high Set A score mainly shows that flexible models can learn the formula used to construct WQI; it is not independent proof that the model can measure river pollution.
-- Set B is the more practical test, but its best reported model does not outperform the station-mean baseline.
-- BOD has the largest WQI weight (about 44.1%) and is the strongest reported feature in Set A.
-- The test set largely contains stations already seen during training. The experiment therefore does not establish generalisation to entirely new stations.
-- The dataset has year-level rather than month-level dates, so seasonal patterns cannot be studied.
-- The chosen WQI standards and weights affect the final index, especially the low contribution of coliform measurements.
+The project is for coursework and exploratory analysis. It should not replace laboratory testing, field validation, or official CPCB assessments.
 
-The project is intended as a decision-support and educational experiment. It should not replace laboratory testing or official water-quality assessments.
+## 8. Reproducibility and quick start
 
-## Repository files
+Python 3.10+ is recommended.
 
-- `DOC-20261117-WA0000.csv` — source dataset
-- `DATA_DICTIONARY.md` — source fields, units and feature-set definitions
-- `run_experiments.py` — full reproducible model comparison
-- `results.txt` — previously recorded detailed metrics
-- `requirements.txt` — Python dependencies
-- `output/` — notebook output notes and figures
+```bash
+git clone https://github.com/aman-naveen1/ML-project.git
+cd ML-project
+python -m venv .venv
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python run_experiments.py --data DOC-20261117-WA0000.csv
+```
 
-## References
+Generated files are written to `outputs/`. The workflow in `.github/workflows/tests.yml` runs the tests and full experiment and uploads the output directory as a GitHub Actions artifact.
 
-1. Brown, R. M., McClelland, N. I., Deininger, R. A. and Tozer, R. G. (1970). “A water quality index—do we dare?” *Water & Sewage Works*, 117(10), 339–343.
-2. Central Pollution Control Board. “Water quality criteria (primary water quality criteria for designated-best-use classes).” https://cpcb.nic.in/water-quality-criteria/
-3. Pedregosa, F. et al. (2011). “Scikit-learn: Machine Learning in Python.” *Journal of Machine Learning Research*, 12, 2825–2830.
-4. Breiman, L. (2001). “Random forests.” *Machine Learning*, 45, 5–32.
-5. Friedman, J. H. (2001). “Greedy function approximation: a gradient boosting machine.” *Annals of Statistics*, 29(5), 1189–1232.
+## 9. Repository layout
+
+```text
+ML-project/
+├── DOC-20261117-WA0000.csv
+├── wqi_estimation1.py
+├── run_experiments.py
+├── tests/
+│   └── test_wqi.py
+├── .github/workflows/
+│   └── tests.yml
+├── DATA_DICTIONARY.md
+├── results.txt
+├── requirements.txt
+├── README.md
+└── outputs/                 # generated experiment artefacts
+```
+
+## 10. References
+
+1. Brown, R. M., McClelland, N. I., Deininger, R. A., & Tozer, R. G. (1970). A water quality index—do we dare? *Water & Sewage Works*, 117(10), 339–343.
+2. Central Pollution Control Board. [Water quality criteria](https://cpcb.nic.in/water-quality-criteria/).
+3. Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
+4. Breiman, L. (2001). Random forests. *Machine Learning*, 45, 5–32.
+5. Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. *Annals of Statistics*, 29(5), 1189–1232.
+
+## Academic integrity
+
+This repository documents the data, assumptions, methods, outputs, and limitations used in the project. Any submitted report should be reviewed by the student, accurately reflect the final executed code, and follow the institution's citation and AI-use rules.
