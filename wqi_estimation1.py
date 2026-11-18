@@ -100,7 +100,7 @@ water["wqi"] = 0
 for col in standards:
     water["wqi"] = water["wqi"] + quality[col] * weights[col]
 
-water["category"] = np.where(water["wqi"] <= 50, "Good", np.where(water["wqi"] <= 75, "Poor", "Very Poor"))
+water["category"] = np.where(water["wqi"] <= 50, "Good / Excellent", np.where(water["wqi"] <= 75, "Poor", "Very Poor"))
 
 water[["year", "wqi", "category"]].head()
 
