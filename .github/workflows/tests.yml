@@ -22,3 +22,10 @@ jobs:
           pip install -r requirements.txt
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+      - name: Run complete experiment
+        run: python run_experiments.py --data DOC-20261117-WA0000.csv
+      - name: Upload experiment outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: wqi-experiment-outputs
+          path: outputs/
