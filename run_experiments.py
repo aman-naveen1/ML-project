@@ -18,8 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from sklearn.base import clone
-from sklearn.compose import TransformedTargetRegressor
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     GradientBoostingRegressor,
@@ -37,7 +35,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
-from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -201,6 +199,21 @@ def station_baselines(train: pd.DataFrame, test: pd.DataFrame, target: str, clas
     return test["station_code"].map(station_values).fillna(global_value).to_numpy()
 
 
+def make_year_based_splits(train):
+    years = np.sort(train["year"].unique())
+    validation_years = years[-5:]
+    splits = []
+    year_values = train["year"].to_numpy()
+    for year in validation_years:
+        train_indices = np.flatnonzero(year_values < year)
+        validation_indices = np.flatnonzero(year_values == year)
+        if len(train_indices) and len(validation_indices):
+            splits.append((train_indices, validation_indices))
+    if len(splits) < 2:
+        raise ValueError("Not enough distinct training years for forward-chaining validation.")
+    return splits
+
+
 def run_regression(train, test, features, label, cv, report_lines, output_dir):
     X_train = transform_features(train, features)
     X_test = transform_features(test, features)
@@ -317,7 +330,7 @@ def main():
     if train.empty or test.empty:
         raise ValueError("The chronological split requires training years <=2012 and test years >=2013.")
 
-    cv = TimeSeriesSplit(n_splits=5)
+    cv = make_year_based_splits(train)
     lines = [
         f"Raw rows: {cleaning['raw_rows']}",
         f"Complete WQI rows: {cleaning['clean_complete_rows']}",
