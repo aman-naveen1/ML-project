@@ -90,20 +90,48 @@ The script creates an `outputs/` folder containing:
 - Observed-versus-predicted and yearly WQI plots
 - A run summary with cleaning counts, selected hyperparameters and evaluation results
 
-## Results reported in the current study
+## Reproduced results
 
-The submitted report records 1,572 complete WQI observations: 1,111 training records and 461 test records.
+The complete pipeline was executed in GitHub Actions against the repository CSV. The run reproduced the cleaning counts and chronological split:
 
-| Experiment | Model | RMSE | R² |
-|---|---|---:|---:|
-| All parameters (A) | Gradient Boosting | 0.82 | 0.997 |
-| Field measurements (B) | Random Forest | 11.36 | 0.44 |
-| Station-mean baseline | — | 7.93 | 0.73 |
-| Mean baseline | — | 15.19 | -0.006 |
+- 1,991 raw rows
+- 1,572 complete WQI records
+- 1,111 training records (through 2012)
+- 461 test records (2013–2014)
 
-For classification with all parameters, Gradient Boosting is reported at 93.9% accuracy and 0.937 macro-F1.
+Hyperparameter selection uses five expanding, year-blocked validation folds. This keeps each validation year separate from its training years.
 
-These figures are the results documented in the accompanying report/results record. Run `run_experiments.py` to regenerate and independently verify the full experiment in the current repository version before treating any metric as reproduced.
+### Regression
+
+| Model | Set A RMSE | Set A R² | Set B RMSE | Set B R² |
+|---|---:|---:|---:|---:|
+| Mean baseline | 15.187 | -0.006 | 15.187 | -0.006 |
+| Station-mean baseline | 7.930 | 0.726 | 7.930 | 0.726 |
+| Linear Regression | 8.509 | 0.684 | 13.406 | 0.216 |
+| Ridge Regression | 8.502 | 0.685 | 13.393 | 0.217 |
+| k-NN | 6.371 | 0.823 | 11.397 | 0.433 |
+| RBF SVR | 2.515 | 0.972 | 11.775 | 0.395 |
+| Decision Tree | 3.012 | 0.960 | 12.640 | 0.303 |
+| Random Forest | 1.851 | 0.985 | 11.324 | 0.440 |
+| Gradient Boosting | 0.823 | 0.997 | 11.342 | 0.439 |
+
+### Classification
+
+| Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
+|---|---:|---:|---:|---:|
+| Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
+| Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
+| Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
+| k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
+| Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
+| Random Forest | 0.913 | 0.905 | 0.616 | 0.627 |
+| Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
+
+The Set A Gradient Boosting regression result is R² = 0.997 and RMSE = 0.823. For Set B, Random Forest gives RMSE = 11.324 and R² = 0.440. The station-mean baseline (RMSE = 7.930) outperforms every Set B regression model.
+
+The earlier submitted report records 93.9% accuracy and 0.937 macro-F1 for Set A Gradient Boosting classification. The current reproducible pipeline gives 93.3% and 0.930. The updated implementation uses year-blocked forward validation for hyperparameter selection, so the regenerated metrics are used here rather than silently retaining the earlier figures.
+
+The detailed regenerated tables, confusion matrix, classification report, feature-importance files and plots are produced by the GitHub Actions workflow and attached as the `wqi-experiment-outputs` artifact. See [the successful experiment run](https://github.com/aman-naveen1/ML-project/actions/runs/44308828024). The same detailed metrics are recorded in `results.txt`.
 
 ## Interpretation and limitations
 
