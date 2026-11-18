@@ -2,7 +2,7 @@ name: Project checks
 
 on:
   push:
-    branches: [main, assessment-improvements]
+    branches: [main, assessment-improvements, research-grade-wqi-upgrade]
   pull_request:
     branches: [main]
 
