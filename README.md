@@ -62,7 +62,7 @@ The categories used in the implementation are:
 
 | WQI range | Category |
 |---|---|
-| 0–50 | Good |
+| 0–50 | Good / Excellent |
 | Above 50–75 | Poor |
 | Above 75 | Very Poor |
 
