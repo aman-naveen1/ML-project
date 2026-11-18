@@ -152,6 +152,11 @@ The earlier report's Set A classification result (93.9% accuracy, macro-F1 0.937
 
 The submitted PDF is retained as the fixed coursework document. The current repository pipeline is the executable source of truth for regenerated outputs. Some reported classification scores differ slightly from the PDF; do not describe the two result sets as identical. The workflow now also regenerates the supporting diagnostic figures and classification diagnostics for both feature sets. A result in the PDF that is not produced by the current pipeline (including its separate random 70/30 split result) must be treated as a historical report result, not as a verified output of this script.
 
+
+### Secondary random-split diagnostic
+
+The pipeline also runs a reproducible 70/30 random split on the complete WQI dataset (seed 42) for the Set B Random Forest, with a shuffled five-fold grid-search CV on the random training partition. It writes `outputs/random_split_comparison.csv` and records the result in `outputs/run_summary.txt`. This is a diagnostic reproduction of the report's comparison, not the primary score: random splitting allows observations from the same stations and years to appear on both sides and is therefore more optimistic than the chronological holdout. The exact RMSE is taken from the generated output, not hard-coded to the PDF's 9.48.
+
 ## 7. Limitations and threats to validity
 
 1. **Formula-derived target:** Set A learns a target calculated from the same inputs. Its high performance is not independent validation of water quality.
