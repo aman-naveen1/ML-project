@@ -119,6 +119,7 @@ The project is intended as a decision-support and educational experiment. It sho
 ## Repository files
 
 - `DOC-20261117-WA0000.csv` — source dataset
+- `DATA_DICTIONARY.md` — source fields, units and feature-set definitions
 - `run_experiments.py` — full reproducible model comparison
 - `results.txt` — previously recorded detailed metrics
 - `requirements.txt` — Python dependencies
