@@ -131,7 +131,7 @@ For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baselin
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
 | Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
-| k-NN | 0.642 | 0.657 | 0.642 | 0.657 |
+| k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
 | Random Forest | 0.913 | 0.905 | 0.616 | 0.627 |
 | Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
