@@ -199,6 +199,22 @@ def station_baselines(train: pd.DataFrame, test: pd.DataFrame, target: str, clas
     return test["station_code"].map(station_values).fillna(global_value).to_numpy()
 
 
+
+def bootstrap_rmse_ci(y_true, y_pred, n_boot=2000, seed=42):
+    """Percentile bootstrap confidence interval for test RMSE."""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    indices = rng.integers(0, n, size=(n_boot, n))
+    errors = y_true[indices] - y_pred[indices]
+    rmses = np.sqrt(np.mean(errors ** 2, axis=1))
+    return (
+        float(np.percentile(rmses, 2.5)),
+        float(np.percentile(rmses, 97.5)),
+    )
+
+
 def make_year_based_splits(train):
     years = np.sort(train["year"].unique())
     validation_years = years[-5:]
@@ -225,11 +241,13 @@ def run_regression(train, test, features, label, cv, report_lines, output_dir):
     rows.append({"model": "Mean baseline", "feature_set": label,
                  "MAE": mean_absolute_error(y_test, mean_pred),
                  "RMSE": np.sqrt(mean_squared_error(y_test, mean_pred)),
-                 "R2": r2_score(y_test, mean_pred), "CV_RMSE": np.nan})
+                 "R2": r2_score(y_test, mean_pred), "CV_RMSE": np.nan,
+                 "CV_RMSE_SD": np.nan, "RMSE_CI_LOW": np.nan, "RMSE_CI_HIGH": np.nan})
     rows.append({"model": "Station-mean baseline", "feature_set": label,
                  "MAE": mean_absolute_error(y_test, station_pred),
                  "RMSE": np.sqrt(mean_squared_error(y_test, station_pred)),
-                 "R2": r2_score(y_test, station_pred), "CV_RMSE": np.nan})
+                 "R2": r2_score(y_test, station_pred), "CV_RMSE": np.nan,
+                 "CV_RMSE_SD": np.nan, "RMSE_CI_LOW": np.nan, "RMSE_CI_HIGH": np.nan})
 
     fitted = {}
     for name, (estimator, grid) in regression_specs().items():
@@ -240,19 +258,52 @@ def run_regression(train, test, features, label, cv, report_lines, output_dir):
         search.fit(X_train, y_train)
         pred = search.predict(X_test)
         cv_rmse = -search.best_score_
+        cv_rmse_sd = float(search.cv_results_["std_test_score"][search.best_index_])
+        rmse = float(np.sqrt(mean_squared_error(y_test, pred)))
+        rmse_ci_low, rmse_ci_high = bootstrap_rmse_ci(y_test, pred)
         rows.append({"model": name, "feature_set": label,
                      "MAE": mean_absolute_error(y_test, pred),
-                     "RMSE": np.sqrt(mean_squared_error(y_test, pred)),
-                     "R2": r2_score(y_test, pred), "CV_RMSE": cv_rmse})
+                     "RMSE": rmse,
+                     "R2": r2_score(y_test, pred), "CV_RMSE": cv_rmse,
+                     "CV_RMSE_SD": cv_rmse_sd,
+                     "RMSE_CI_LOW": rmse_ci_low, "RMSE_CI_HIGH": rmse_ci_high})
         fitted[name] = search.best_estimator_
         report_lines.append(
             f"Regression {label} | {name}: best_params={search.best_params_}; "
             f"MAE={rows[-1]['MAE']:.3f}; RMSE={rows[-1]['RMSE']:.3f}; "
-            f"R2={rows[-1]['R2']:.3f}; CV_RMSE={cv_rmse:.3f}"
+            f"R2={rows[-1]['R2']:.3f}; CV_RMSE={cv_rmse:.3f} ± {cv_rmse_sd:.3f}; "
+            f"Bootstrap_RMSE_CI95=({rmse_ci_low:.3f}, {rmse_ci_high:.3f})"
         )
 
     result = pd.DataFrame(rows)
     result.to_csv(output_dir / f"regression_{label}.csv", index=False)
+
+    if label == "B":
+        best_for_errors = fitted[result[result["model"].isin(fitted)].sort_values("RMSE").iloc[0]["model"]]
+        best_pred_for_errors = best_for_errors.predict(X_test)
+        error_frame = test[["station_code", "category", "wqi"]].copy()
+        error_frame["prediction"] = best_pred_for_errors
+        error_frame["abs_error"] = np.abs(error_frame["wqi"] - error_frame["prediction"])
+        error_frame["squared_error"] = (error_frame["wqi"] - error_frame["prediction"]) ** 2
+        station_error = (
+            error_frame.groupby("station_code", dropna=False)
+            .agg(n=("wqi", "size"), MAE=("abs_error", "mean"),
+                 RMSE=("squared_error", lambda x: np.sqrt(x.mean())),
+                 mean_observed_wqi=("wqi", "mean"),
+                 mean_predicted_wqi=("prediction", "mean"))
+            .reset_index()
+            .sort_values(["n", "RMSE"], ascending=[False, False])
+        )
+        category_error = (
+            error_frame.groupby("category", dropna=False)
+            .agg(n=("wqi", "size"), MAE=("abs_error", "mean"),
+                 RMSE=("squared_error", lambda x: np.sqrt(x.mean())),
+                 mean_observed_wqi=("wqi", "mean"),
+                 mean_predicted_wqi=("prediction", "mean"))
+            .reset_index()
+        )
+        station_error.to_csv(output_dir / "error_by_station_B.csv", index=False)
+        category_error.to_csv(output_dir / "error_by_category_B.csv", index=False)
 
     best_name = result[result["model"].isin(fitted)].sort_values("RMSE").iloc[0]["model"]
     best_model = fitted[best_name]
