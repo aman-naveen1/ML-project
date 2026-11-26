@@ -107,9 +107,9 @@ Set A includes measurements that are themselves inputs to the WQI formula. Its h
 - Model interpretation: permutation feature importance on the held-out test set.
 - Reproducibility: fixed random seeds, explicit preprocessing pipelines, automated unit tests, and saved outputs.
 
-## 6. Recorded results
+## 6. Verified results
 
-The following are the previously reproduced results from the full experiment. They must be regenerated after code changes before being treated as the final run for a submission.
+The following values are from the verified GitHub Actions run (workflow run 53, 26 November 2026) using the current `run_experiments.py` pipeline. These are the repository's current reproducible results.
 
 ### Dataset split
 
@@ -134,12 +134,26 @@ The following are the previously reproduced results from the full experiment. Th
 | Random Forest | 1.851 | 0.985 | 11.324 | 0.440 |
 | Gradient Boosting | 0.823 | 0.997 | 11.342 | 0.439 |
 
+### CV uncertainty and bootstrap intervals
+
+| Model | Set A CV RMSE ± SD | Set A test RMSE | Set A bootstrap 95% CI | Set B CV RMSE ± SD | Set B test RMSE | Set B bootstrap 95% CI |
+|---|---:|---:|---:|---:|---:|---:|
+| Linear Regression | 9.058 ± 0.575 | 8.509 | 7.728–9.355 | 12.988 ± 1.062 | 13.406 | 12.442–14.485 |
+| Ridge Regression | 9.045 ± 0.572 | 8.502 | 7.728–9.338 | 12.983 ± 1.063 | 13.393 | 12.434–14.463 |
+| k-NN | 6.099 ± 0.822 | 6.371 | 5.775–7.013 | 10.736 ± 0.712 | 11.397 | 10.573–12.289 |
+| RBF SVR | 3.402 ± 0.530 | 2.515 | 2.114–2.987 | 10.988 ± 0.815 | 11.775 | 10.928–12.631 |
+| Decision Tree | 3.377 ± 0.518 | 3.012 | 2.631–3.419 | 11.707 ± 0.379 | 12.640 | 11.769–13.494 |
+| Random Forest | 2.417 ± 0.446 | 1.851 | 1.493–2.266 | 10.661 ± 0.422 | 11.324 | 10.553–12.116 |
+| Gradient Boosting | 1.159 ± 0.287 | 0.823 | 0.729–0.921 | 10.601 ± 0.510 | 11.342 | 10.550–12.088 |
+
+These values are generated from the current experiment code. The SD is the fold-to-fold standard deviation of forward-chaining CV RMSE; the CI is the percentile bootstrap 95% interval for held-out test RMSE.
+
 ### Classification
 
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
 |---|---:|---:|---:|---:|
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
-| Station-majority | 0.735 | 0.747 | 0.735 | 0.747 |
+| Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
 | k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
@@ -148,16 +162,41 @@ The following are the previously reproduced results from the full experiment. Th
 
 **Interpretation:** Set A Gradient Boosting reaches RMSE 0.823 and R² 0.997, but this is expected to be optimistic as the target is calculated from the same measurements. Set B is the more realistic reduced-measurement task. Its best regression result (RMSE 11.324) is worse than the station-mean baseline (RMSE 7.930). This baseline comparison is a central finding, not something to hide.
 
-The earlier report's Set A classification result (93.9% accuracy, macro-F1 0.937) differs from the regenerated year-blocked result (93.3%, 0.930). The current pipeline result is reported rather than silently mixing metrics from different evaluation procedures.
+The current pipeline result is the authoritative result for this repository; older PDF/report numbers from earlier evaluation procedures are superseded.
 
 ## Submitted PDF and reproducibility note
 
-The submitted PDF is retained as the fixed coursework document. The current repository pipeline is the executable source of truth for regenerated outputs. Some reported classification scores differ slightly from the PDF; do not describe the two result sets as identical. The workflow now also regenerates the supporting diagnostic figures and classification diagnostics for both feature sets. A result in the PDF that is not produced by the current pipeline (including its separate random 70/30 split result) must be treated as a historical report result, not as a verified output of this script.
+The current repository pipeline and the revised report are the source of truth for the verified results. The final PDF should be regenerated from this same verified run before submission; do not mix older PDF values with the current repository outputs.
 
+
+### Selected hyperparameters
+
+The selected settings from `outputs/selected_hyperparameters.csv` are:
+
+| Set | Model | Selected parameters |
+|---|---|---|
+| A | Ridge | alpha=10 |
+| A | k-NN | n_neighbors=5; weights=distance |
+| A | RBF SVR | C=100; epsilon=0.5 |
+| A | Decision Tree | max_depth=12; min_samples_leaf=5 |
+| A | Random Forest | max_depth=None; min_samples_leaf=1 |
+| A | Gradient Boosting | learning_rate=0.1; max_depth=2; n_estimators=300 |
+| B | Ridge | alpha=10 |
+| B | k-NN | n_neighbors=31; weights=distance |
+| B | RBF SVR | C=10; epsilon=2 |
+| B | Decision Tree | max_depth=5; min_samples_leaf=5 |
+| B | Random Forest | max_depth=5; min_samples_leaf=1 |
+| B | Gradient Boosting | learning_rate=0.1; max_depth=3; n_estimators=100 |
+
+Linear Regression has no tunable grid-search parameters.
+
+### Set B error analysis
+
+For the best Set B regression model (Random Forest), category-level test errors are: Good / Excellent n=167, MAE 8.636, RMSE 11.742; Poor n=205, MAE 9.782, RMSE 11.767; Very Poor n=89, MAE 7.389, RMSE 9.305. The model overpredicts Good / Excellent observations and underpredicts Very Poor observations. Station-level results are in `outputs/error_by_station_B.csv`.
 
 ### Secondary random-split diagnostic
 
-The pipeline also runs a reproducible 70/30 random split on the complete WQI dataset (seed 42) for the Set B Random Forest, with a shuffled five-fold grid-search CV on the random training partition. It writes `outputs/random_split_comparison.csv` and records the result in `outputs/run_summary.txt`. This is a diagnostic reproduction of the report's comparison, not the primary score: random splitting allows observations from the same stations and years to appear on both sides and is therefore more optimistic than the chronological holdout. The exact RMSE is taken from the generated output, not hard-coded to the PDF's 9.48.
+The pipeline also runs a reproducible 70/30 random split on the complete WQI dataset (seed 42) for the Set B Random Forest. The verified diagnostic gives RMSE 9.879 and R² 0.624 (train n=1,100; test n=472). This is diagnostic only: random splitting can place observations from the same stations and years on both sides and is therefore more optimistic than the chronological holdout.
 
 ## 7. Limitations and threats to validity
 
@@ -184,7 +223,7 @@ The reproducibility pipeline now supports the reviewer-requested uncertainty and
 - the report records the 17 October 2026 access date;
 - the report contains an explicit operational target: beat the station-mean baseline.
 
-After a fresh-clone run, copy numbers directly from the generated CSV/TXT outputs into the manuscript. Do not manually reuse values from an older PDF.
+For submission, the manuscript/PDF must use the same values as the verified generated outputs. Do not reuse values from an older PDF.
 
 ## 8. Reproducibility and quick start
 
