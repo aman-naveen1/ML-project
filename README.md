@@ -171,6 +171,21 @@ The pipeline also runs a reproducible 70/30 random split on the complete WQI dat
 
 The project is for coursework and exploratory analysis. It should not replace laboratory testing, field validation, or official CPCB assessments.
 
+## 8.1 Submission-revision checklist
+
+The reproducibility pipeline now supports the reviewer-requested uncertainty and error-analysis outputs:
+
+- regression tables include forward-chaining CV RMSE mean and SD;
+- regression test RMSE receives a percentile bootstrap 95% interval;
+- selected regression and classification hyperparameters are saved to `outputs/selected_hyperparameters.csv`;
+- Set B Random Forest errors are summarised by station and WQI category;
+- the random 70/30 comparison remains a diagnostic only and is never used as the primary result;
+- the manuscript uses **set A** and **set B** consistently;
+- the report records the 17 October 2026 access date;
+- the report contains an explicit operational target: beat the station-mean baseline.
+
+After a fresh-clone run, copy numbers directly from the generated CSV/TXT outputs into the manuscript. Do not manually reuse values from an older PDF.
+
 ## 8. Reproducibility and quick start
 
 Python 3.10+ is recommended.
