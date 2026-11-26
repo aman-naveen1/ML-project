@@ -114,11 +114,11 @@ Regression is evaluated using MAE, RMSE, and R². Classification is evaluated us
 | Station-mean baseline | 7.930 | 0.726 | 7.930 | 0.726 |
 | Linear Regression | 8.509 | 0.684 | 13.406 | 0.216 |
 | Ridge Regression | 8.502 | 0.685 | 13.393 | 0.217 |
-| k-NN | 6.371 | 0.823 | 11.397 | 0.433 |
+| k-NN | 6.37 | 0.823 | 11.397 | 0.433 |
 | RBF SVR | 2.515 | 0.972 | 11.775 | 0.395 |
 | Decision Tree | 3.012 | 0.960 | 12.640 | 0.303 |
-| Random Forest | 1.851 | 0.985 | 11.324 | 0.440 |
-| Gradient Boosting | 0.823 | 0.997 | 11.342 | 0.439 |
+| Random Forest | 1.89 | 0.985 | 11.324 | 0.440 |
+| Gradient Boosting | 0.823 | 0.997 | 11.34 | 0.439 |
 
 Set A Gradient Boosting produces the lowest recorded RMSE (0.823) and highest R² (0.997). Since all WQI input variables are also supplied to the model, this result primarily indicates that the model can approximate the index calculation.
 
@@ -131,7 +131,7 @@ For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baselin
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
 | Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
-| k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
+| k-NN | 0.642 | 0.657 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
 | Random Forest | 0.913 | 0.905 | 0.616 | 0.627 |
 | Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
