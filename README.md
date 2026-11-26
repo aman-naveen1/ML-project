@@ -285,3 +285,6 @@ train or claim to externally validate the original row-level ML models.
 Overlapping years (2012–2014) are useful for checking broad consistency, but
 the different annual min/max aggregation means they are not directly
 comparable to the original dataset's individual records. The external source's derived labels are not used as independent ground truth.
+
+
+<!-- reproducibility verification trigger: 2026-11-26 -->
