@@ -502,11 +502,12 @@ def main():
             prefix, rest = line.split("best_params=", 1)
             params_text = rest.split(";", 1)[0]
             parts = prefix.strip().split("|")
-            if len(parts) >= 3:
+            if len(parts) >= 2:
+                task_set = parts[0].strip().split()
                 hyperparameter_rows.append({
-                    "task": parts[0].strip(),
-                    "feature_set": parts[1].strip(),
-                    "model": parts[2].strip().rstrip(":"),
+                    "task": task_set[0],
+                    "feature_set": task_set[1],
+                    "model": parts[1].strip().rstrip(":"),
                     "selected_params": params_text,
                 })
     pd.DataFrame(hyperparameter_rows).to_csv(
