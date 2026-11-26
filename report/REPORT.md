@@ -124,6 +124,22 @@ Set A Gradient Boosting produces the lowest recorded RMSE (0.823) and highest R�
 
 For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baseline has RMSE 7.930, so the field-only machine-learning regressors do not outperform this simple benchmark in the recorded experiment.
 
+### 4.1.1 Cross-validation uncertainty and bootstrap intervals
+
+The final GitHub Actions run (workflow run 53, executed 26 November 2026) regenerated the regression outputs. The CV values below are the mean RMSE ± standard deviation across the forward-chaining folds; the test-RMSE intervals are percentile bootstrap 95% intervals from the held-out 2013–2014 predictions.
+
+| Model | Set A CV RMSE ± SD | Set A test RMSE | Set A bootstrap 95% CI | Set B CV RMSE ± SD | Set B test RMSE | Set B bootstrap 95% CI |
+|---|---:|---:|---:|---:|---:|---:|
+| Linear Regression | 9.058 ± 0.575 | 8.509 | 7.728–9.355 | 12.988 ± 1.062 | 13.406 | 12.442–14.485 |
+| Ridge Regression | 9.045 ± 0.572 | 8.502 | 7.728–9.338 | 12.983 ± 1.063 | 13.393 | 12.434–14.463 |
+| k-NN | 6.099 ± 0.822 | 6.371 | 5.775–7.013 | 10.736 ± 0.712 | 11.397 | 10.573–12.289 |
+| RBF SVR | 3.402 ± 0.530 | 2.515 | 2.114–2.987 | 10.988 ± 0.815 | 11.775 | 10.928–12.631 |
+| Decision Tree | 3.377 ± 0.518 | 3.012 | 2.631–3.419 | 11.707 ± 0.379 | 12.640 | 11.769–13.494 |
+| Random Forest | 2.417 ± 0.446 | 1.851 | 1.493–2.266 | 10.661 ± 0.422 | 11.324 | 10.553–12.116 |
+| Gradient Boosting | 1.159 ± 0.287 | 0.823 | 0.729–0.921 | 10.601 ± 0.510 | 11.342 | 10.550–12.088 |
+
+The corresponding machine-readable files are `outputs/regression_A.csv` and `outputs/regression_B.csv`. The selected hyperparameters are recorded in `outputs/selected_hyperparameters.csv`.
+
 ### 4.2 Classification
 
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
@@ -140,12 +156,24 @@ The Set A Gradient Boosting classifier records 93.3% accuracy and 0.930 macro-F1
 
 ### 4.3 Uncertainty and error analysis
 
-The final experiment script now reports the mean and standard deviation of RMSE across the five forward-chaining validation folds rather than a single CV-RMSE value. It also computes a percentile bootstrap 95% interval for test RMSE for each fitted regression model. The machine-readable outputs are outputs/regression_A.csv and outputs/regression_B.csv.
+The final experiment script reports the mean and standard deviation of RMSE across the forward-chaining validation folds and computes a percentile bootstrap 95% interval for test RMSE for each fitted regression model. These values were regenerated successfully in GitHub Actions on 26 November 2026. The machine-readable outputs are outputs/regression_A.csv and outputs/regression_B.csv.
 
 For the practical Set B model, the script additionally writes outputs/error_by_station_B.csv and outputs/error_by_category_B.csv. These tables should be used to report where the Random Forest model fails most strongly, rather than relying only on the overall RMSE. Category-level errors distinguish whether residuals are concentrated in Good / Excellent, Poor, or Very Poor observations; station-level results show whether persistent local conditions explain part of the error.
 
 The station-mean baseline remains the decisive benchmark: the best Set B Random Forest has RMSE 11.324 versus 7.930 for the station-mean baseline. Thus the uncertainty analysis does not change the central conclusion that field-only ML, as implemented here, does not yet beat the simplest station-history predictor.
-### 4.3 Summary of findings
+### 4.3 Error analysis for the best Set B regression model
+
+The best Set B regression model by chronological test RMSE is Random Forest (11.324). The regenerated category-level error summary is:
+
+| WQI category | n | MAE | RMSE | Mean observed WQI | Mean predicted WQI |
+|---|---:|---:|---:|---:|---:|
+| Good / Excellent | 167 | 8.636 | 11.742 | 42.240 | 48.941 |
+| Poor | 205 | 9.782 | 11.767 | 60.875 | 56.378 |
+| Very Poor | 89 | 7.389 | 9.305 | 79.994 | 72.834 |
+
+The largest category-level RMSE is in the Poor group (11.767). The model overpredicts the Good / Excellent group and underpredicts the Very Poor group, indicating regression toward the centre of the WQI range. Station-level errors are supplied in `outputs/error_by_station_B.csv`; the highest-RMSE stations have only two test observations each, so station-specific estimates should be interpreted cautiously.
+
+### 4.4 Summary of findings
 
 1. Full-measurement models can closely reproduce the constructed WQI.
 2. Field-only prediction is substantially more difficult.
@@ -159,7 +187,7 @@ The submitted PDF is the fixed coursework document and is not modified by this r
 
 ### Secondary random-split diagnostic
 
-A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The current rerun target for this diagnostic is RMSE 9.84 (the earlier PDF reported 9.48); the exact value is always taken from `outputs/random_split_comparison.csv` and must be copied from the final run rather than hard-coded.
+A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The final regenerated diagnostic gives Random Forest RMSE 9.879 and R² 0.624 (train n=1,100; test n=472). The exact value is taken from `outputs/random_split_comparison.csv` and is not used as the primary result.
 
 ## 5. Discussion
 
