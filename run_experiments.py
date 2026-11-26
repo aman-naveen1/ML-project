@@ -495,6 +495,24 @@ def main():
         output_dir / "classification_summary.csv", index=False
     )
 
+    # Save selected hyperparameters in a machine-readable table.
+    hyperparameter_rows = []
+    for line in lines:
+        if "best_params=" in line:
+            prefix, rest = line.split("best_params=", 1)
+            params_text = rest.split(";", 1)[0]
+            parts = prefix.strip().split("|")
+            if len(parts) >= 3:
+                hyperparameter_rows.append({
+                    "task": parts[0].strip(),
+                    "feature_set": parts[1].strip(),
+                    "model": parts[2].strip().rstrip(":"),
+                    "selected_params": params_text,
+                })
+    pd.DataFrame(hyperparameter_rows).to_csv(
+        output_dir / "selected_hyperparameters.csv", index=False
+    )
+
     plt.figure(figsize=(7, 4))
     water.groupby("year")["wqi"].median().plot(marker="o")
     plt.axhline(50, linestyle="--", linewidth=1)
