@@ -11,7 +11,7 @@
 
 ## Abstract
 
-This project studies the estimation of river-water quality using a weighted-arithmetic Water Quality Index (WQI) and supervised machine-learning methods. Seven physicochemical and microbiological measurements are combined into a project-defined WQI. Regression models estimate the continuous index, while classifiers predict its three categories. Two feature sets are compared: all available measurements and a reduced set of four field measurements. A chronological holdout uses observations through 2012 for training and 2013–2014 for testing. The recorded experiment shows near-perfect performance for the full-measurement Gradient Boosting model (RMSE 0.823; R² 0.997), but this is largely a consequence of learning the formula used to construct the target. With field measurements only, the best regression model has RMSE 11.324 and is outperformed by a station-mean baseline (RMSE 7.930). These results demonstrate why baselines, leakage-aware validation, and careful interpretation are essential when evaluating environmental machine-learning systems.
+This project studies the estimation of river-water quality using a weighted-arithmetic Water Quality Index (WQI) and supervised machine-learning methods. Seven physicochemical and microbiological measurements are combined into a project-defined WQI. Regression models estimate the continuous index, while classifiers predict its three categories. Two feature sets are compared: all available measurements and a reduced set of four field measurements. A chronological holdout uses observations through 2012 for training and 2013–2014 for testing. The recorded experiment shows near-perfect performance for the full-measurement Gradient Boosting model (RMSE 0.823; R² 0.997), but this is largely a consequence of learning the formula used to construct the target. With field measurements only, the best regression model is Random Forest (RMSE 11.324; R² 0.440), but it is outperformed by a station-mean baseline (RMSE 7.930; R² 0.726). We therefore define the practical target as beating the station-mean baseline; the field-only models do not meet that target. These results demonstrate why baselines, leakage-aware validation, and careful interpretation are essential when evaluating environmental machine-learning systems.
 
 **Keywords:** Water Quality Index, river monitoring, regression, classification, Random Forest, Gradient Boosting, India.
 
@@ -20,6 +20,14 @@ This project studies the estimation of river-water quality using a weighted-arit
 Access to safe water is central to public health, ecological sustainability, and the achievement of SDG 6. River monitoring produces multiple measurements, but interpreting them individually can be difficult. A composite index offers a compact summary of selected measurements.
 
 This project calculates a weighted-arithmetic WQI from Indian river-monitoring data and evaluates whether machine-learning models can estimate the index or its categories. It also examines a practical reduced-feature setting in which only temperature, dissolved oxygen, pH, and conductivity are available.
+
+### 1.1 Motivation and SDG targets
+
+The study is motivated by the monitoring problem behind SDG 6.3 and SDG 14.1. UN-Water reports that, among the 42 countries for which total wastewater data were sufficient in its 2024 update, only 60% of total wastewater was safely treated; the report also notes that these data cover only about 12% of the world's population, so the figure should not be treated as a global estimate. SDG 6.3.1 tracks the proportion of wastewater flows that are safely treated before discharge. [1]
+
+SDG 14.1 explicitly targets the prevention and significant reduction of marine pollution from land-based activities, including nutrient pollution and marine debris; its indicator 14.1.1 covers coastal eutrophication and plastic-debris density. River monitoring is relevant because riverine pollution is one pathway by which land-based contaminants reach coastal and marine systems. [2]
+
+For this study, the operational target is deliberately quantitative: a field-only ML model should beat the station-mean regression baseline (test RMSE 7.930) on the chronological 2013–2014 holdout. The experiment therefore treats failure to beat this baseline as a useful negative result rather than selecting a more favourable baseline or random split.
 
 ### 1.1 Objectives
 
@@ -41,7 +49,7 @@ This project calculates a weighted-arithmetic WQI from Indian river-monitoring d
 
 ### 2.1 Source and coverage
 
-The project uses the Indian Water Quality Data dataset, distributed through Kaggle and included in the repository as `DOC-20261117-WA0000.csv`. The source file contains 1,991 records and 12 fields, covering 2003–2014.
+The project uses the Indian Water Quality Data dataset, distributed through Kaggle and included in the repository as `DOC-20261117-WA0000.csv`. The dataset was accessed on 17 October 2026. The Kaggle dataset page does not expose a clearly verifiable dataset licence in the retrieved metadata; therefore this report does not invent a licence. The repository retains source attribution and the applicable Kaggle terms. The source file contains 1,991 records and 12 fields, covering 2003–2014.
 
 The fields include station code, location, state, temperature, dissolved oxygen, pH, conductivity, biochemical oxygen demand, nitrate/nitrite nitrogen, faecal coliform, total coliform, and year. Field definitions and units are documented in `DATA_DICTIONARY.md`.
 
@@ -49,7 +57,7 @@ The fields include station code, location, state, temperature, dissolved oxygen,
 
 Measurements are converted to numeric values; non-numeric tokens are treated as missing. Duplicate records are removed. pH outside the physically valid range 0–14 is marked missing. Records missing any of the seven WQI inputs are excluded from WQI calculation. Missing predictive features are imputed within model pipelines, so imputation statistics are learned from training data only.
 
-The previously recorded full run retained 1,572 complete WQI observations. Of these, 1,111 observations through 2012 formed the training set and 461 observations from 2013–2014 formed the test set.
+The reproduced run retained 1,572 complete WQI observations. Of these, 1,111 observations through 2012 formed the training set and 461 observations from 2013–2014 formed the test set.
 
 ## 3. Methodology
 
@@ -90,6 +98,8 @@ Baselines: training-mean and station-mean regression; majority-class and station
 
 ### 3.4 Validation design
 
+The selected hyperparameters are recorded directly by the experiment script in outputs/selected_hyperparameters.csv. This file, rather than an independently typed table, is the source for the final manuscript's hyperparameter table. The script also records the fold-level CV-RMSE mean and standard deviation.
+
 Observations are split chronologically: training through 2012 and testing on 2013–2014. Hyperparameters are selected with expanding year-blocked validation folds within the training period. Preprocessing is embedded in scikit-learn pipelines to prevent imputation and scaling from using test-fold statistics.
 
 Regression is evaluated using MAE, RMSE, and R². Classification is evaluated using accuracy and macro-F1, with confusion matrix and per-class report generated for Set A. Permutation importance is computed on the held-out test set.
@@ -119,15 +129,22 @@ For Set B, Random Forest has RMSE 11.324 and R² 0.440. The station-mean baselin
 | Model | Set A accuracy | Set A macro-F1 | Set B accuracy | Set B macro-F1 |
 |---|---:|---:|---:|---:|
 | Majority class | 0.362 | 0.177 | 0.362 | 0.177 |
-| Station-majority | 0.735 | 0.747 | 0.735 | 0.747 |
+| Station-majority | 0.731 | 0.740 | 0.731 | 0.740 |
 | Logistic Regression | 0.820 | 0.802 | 0.564 | 0.575 |
 | k-NN | 0.768 | 0.777 | 0.642 | 0.657 |
 | Decision Tree | 0.816 | 0.809 | 0.599 | 0.608 |
 | Random Forest | 0.913 | 0.905 | 0.616 | 0.627 |
 | Gradient Boosting | 0.933 | 0.930 | 0.657 | 0.661 |
 
-The Set A Gradient Boosting classifier records 93.3% accuracy and 0.930 macro-F1. The earlier report contains 93.9% and 0.937; the difference is retained transparently because the current pipeline uses year-blocked hyperparameter validation.
+The Set A Gradient Boosting classifier records 93.3% accuracy and 0.930 macro-F1. For Set B, Gradient Boosting is the strongest classifier in the regenerated run at 65.7% accuracy and 0.661 macro-F1, but it remains below the station-majority baseline (73.1% accuracy and 0.740 macro-F1). The earlier report contains 93.9% and 0.937; the difference is retained transparently because the current pipeline uses year-blocked hyperparameter validation.
 
+### 4.3 Uncertainty and error analysis
+
+The final experiment script now reports the mean and standard deviation of RMSE across the five forward-chaining validation folds rather than a single CV-RMSE value. It also computes a percentile bootstrap 95% interval for test RMSE for each fitted regression model. The machine-readable outputs are outputs/regression_A.csv and outputs/regression_B.csv.
+
+For the practical Set B model, the script additionally writes outputs/error_by_station_B.csv and outputs/error_by_category_B.csv. These tables should be used to report where the Random Forest model fails most strongly, rather than relying only on the overall RMSE. Category-level errors distinguish whether residuals are concentrated in Good / Excellent, Poor, or Very Poor observations; station-level results show whether persistent local conditions explain part of the error.
+
+The station-mean baseline remains the decisive benchmark: the best Set B Random Forest has RMSE 11.324 versus 7.930 for the station-mean baseline. Thus the uncertainty analysis does not change the central conclusion that field-only ML, as implemented here, does not yet beat the simplest station-history predictor.
 ### 4.3 Summary of findings
 
 1. Full-measurement models can closely reproduce the constructed WQI.
@@ -142,7 +159,7 @@ The submitted PDF is the fixed coursework document and is not modified by this r
 
 ### Secondary random-split diagnostic
 
-A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The exact RMSE is generated in `outputs/random_split_comparison.csv` and is not hard-coded to the submitted PDF's 9.48.
+A separate 70/30 random split (seed 42) is executed for the Set B Random Forest, with shuffled five-fold grid-search validation inside the random training partition. This is included only to reproduce the report's illustrative comparison; the chronological 2013–2014 holdout remains the primary evaluation. Random splitting can place records from the same station and different years in both partitions, making the result more optimistic. The current rerun target for this diagnostic is RMSE 9.84 (the earlier PDF reported 9.48); the exact value is always taken from `outputs/random_split_comparison.csv` and must be copied from the final run rather than hard-coded.
 
 ## 5. Discussion
 
@@ -178,12 +195,35 @@ The project demonstrates a reproducible workflow for calculating a weighted-arit
 
 ## References
 
-1. Brown, R. M., McClelland, N. I., Deininger, R. A., & Tozer, R. G. (1970). A water quality index—do we dare? *Water & Sewage Works*, 117(10), 339–343.
-2. Central Pollution Control Board. *Water quality criteria*. https://cpcb.nic.in/water-quality-criteria/
-3. Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
-4. Breiman, L. (2001). Random forests. *Machine Learning*, 45, 5–32.
-5. Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. *Annals of Statistics*, 29(5), 1189–1232.
+1. UN-Water. *Progress on Wastewater Treatment – 2024 Update*. United Nations, 2024. https://www.unwater.org/publications/progress-wastewater-treatment-2024-update
+2. United Nations Department of Economic and Social Affairs. *Sustainable Development Goal 14, Target 14.1 and Indicator 14.1.1*. https://sdgs.un.org/goals/goal14
+3. Brown, R. M., McClelland, N. I., Deininger, R. A., & Tozer, R. G. (1970). A water quality index—do we dare? *Water & Sewage Works*, 117(10), 339–343.
+4. Central Pollution Control Board. *Water Quality Criteria: Primary Water Quality Criteria for Designated Best Use Classes*. Government of India. https://cpcb.nic.in/water-quality-criteria/
+5. Khoi, D. N., Quan, N. T., Linh, D. Q., Nhi, P. T. T., et al. (2022). Using machine learning models for predicting the water quality index in the La Buong River, Vietnam. *Water*, 14(10), 1552. https://doi.org/10.3390/w14101552
+6. Masood, A., Niazkar, M., Zakwan, M., & Piraei, R. (2023). A machine learning-based framework for water quality index estimation in the Southern Bug River. *Water*, 15(20), 3543. https://doi.org/10.3390/w15203543
+7. Singh, S., Das, A., & Sharma, P. (2024). Predictive modeling of water quality index (WQI) classes in Indian rivers: insights from the application of multiple machine learning (ML) models on a decennial dataset. *Stochastic Environmental Research and Risk Assessment*. https://doi.org/10.1007/s00477-024-02741-z
+8. Aldrees, A., Khan, M., Taha Bakheit, A. B., & Ali, M. (2024). Evaluation of water quality indexes with novel machine learning and SHapley Additive exPlanation (SHAP) approaches. *Journal of Water Process Engineering*, 58, 104789. https://doi.org/10.1016/j.jwpe.2024.104789
+9. Mohseni, U., Pande, C. B., Pal, S. C., & Alshehri, F. (2024). Prediction of weighted arithmetic water quality index for urban water quality using ensemble machine learning model. *Chemosphere*, 352, 141393. https://doi.org/10.1016/j.chemosphere.2024.141393
+10. Mo, Y., Xu, J., Liu, C., Wu, J., & Chen, D. (2024). Assessment and prediction of Water Quality Index (WQI) by seasonal key water parameters in a coastal city: application of machine learning models. *Environmental Monitoring and Assessment*, 196(11), 1008. https://doi.org/10.1007/s10661-024-13209-6
+11. Yang, S., Liang, R., Chen, J., Wang, Y., & Li, K. (2024). Estimating the water quality index based on interpretable machine learning models. *Water Science & Technology*, 89(5), 1340–1356. https://doi.org/10.2166/wst.2024.068
+12. Ejaz, U., Khan, S. M., Jehangir, S., Ahmad, Z., Abdullah, A., Iqbal, M., Khalid, N., Nazir, A., & Svenning, J.-C. (2024). Monitoring the industrial waste polluted stream—integrated analytics and machine learning for water quality index assessment. *Journal of Cleaner Production*, 141877. https://doi.org/10.1016/j.jclepro.2024.141877
+13. Qu, J., Ma, J., Luo, Y., & Ma, Y. (2025). Application of simplified machine learning models to assess and predict lake water quality. *Water Research X*, 29, 100445. https://doi.org/10.1016/j.wroa.2025.100445
+14. Han, Z., Zhang, S., He, L., & Zhu, B. (2025). Predicting and investigating water quality index by robust machine learning methods. *Journal of Environmental Management*, 381, 125156. https://doi.org/10.1016/j.jenvman.2025.125156
+15. Choudhary, R., Kumar, A., C., P., Naik, M. M., Choudhury, M., & Khan, N. A. (2025). Predicting water quality index using stacked ensemble regression and SHAP based explainable artificial intelligence. *Scientific Reports*, 15, 31139. https://doi.org/10.1038/s41598-025-09463-4
+16. Hridoy, M. A. A. M., Shawkat, A. I., Bordin, C., Acharjee, M. R., Masood, A., Baki, A. O., & Mamun, M. A. (2025). Advanced machine learning models for accurate water quality classification and WQI prediction: implications for aquatic disease risk management. *Science of the Total Environment*, 1008, 180965. https://doi.org/10.1016/j.scitotenv.2025.180965
+17. Rahman, A., Syeed, M. M. M., Karim, M. R., Fatema, K., et al. (2025). An optimized ensemble ML-WQI model for reliable water quality prediction by minimizing the eclipsing and ambiguity issues. *Applied Water Science*, 15, 113. https://doi.org/10.1007/s13201-025-02450-0
+18. Mahmoudian Boroujerd, L., Shakerdonyavi, A., Asadgol, Z., Donyavi, T., Tavakoli, A., Abdossalami Asl, Y., Tabatabaee Jabali, S. M., Bahari, N., Shahouri, M., & Safarpour, E. (2025). Machine learning-based prediction of drinking water quality index in Western Tehran using KAN, MLP, and traditional models. *Environmental Monitoring and Assessment*, 197, 1065. https://doi.org/10.1007/s10661-025-14500-w
+19. Mengistu, T. D., Chung, I.-M., & Chang, S. W. (2026). Machine learning for water quality prediction and uncertainty assessment. *Physics and Chemistry of the Earth, Parts A/B/C*, 143, 104319. https://doi.org/10.1016/j.pce.2026.104319
+20. Pedregosa, F., Varoquaux, G., Gramfort, A., et al. (2011). Scikit-learn: Machine Learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
+21. Breiman, L. (2001). Random forests. *Machine Learning*, 45, 5–32. https://doi.org/10.1023/A:1010933404324
+22. Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. *The Annals of Statistics*, 29(5), 1189–1232. https://doi.org/10.1214/aos/1013203451
+23. Bergmeir, C., & Benítez, J. M. (2012). On the use of cross-validation for time series predictor evaluation. *Information Sciences*, 191, 192–213. https://doi.org/10.1016/j.ins.2011.12.028
+24. Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2nd ed.). Springer.
+
+## AI-use statement
+
+An AI assistant was used for literature discovery, language editing, review of the manuscript against the assignment feedback, and software-review suggestions. The experiment code was executed separately; reported numerical results are to be copied from generated machine-readable outputs. The author reviewed the methodology, assumptions, source material, code changes, and final manuscript and takes responsibility for the submitted content.
 
 ---
 
-**Reproducibility note:** Tables above reflect the previously recorded experiment. Regenerate the pipeline and verify its outputs after any code modification before submitting this report.
+**Reproducibility note:** The final submission must be generated from a fresh clone after the updated experiment completes. Every numerical value in the manuscript, including CV mean ± SD, bootstrap intervals, random-split diagnostics, selected hyperparameters, and Set B error-analysis summaries, must be copied from the generated outputs rather than typed independently.
