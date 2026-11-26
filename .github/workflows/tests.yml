@@ -36,3 +36,12 @@ jobs:
         with:
           name: wqi-experiment-outputs
           path: outputs/
+
+      - name: Commit reproducible experiment outputs
+        if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add outputs/regression_A.csv outputs/regression_B.csv outputs/classification_A.csv outputs/classification_B.csv outputs/selected_hyperparameters.csv outputs/error_by_station_B.csv outputs/error_by_category_B.csv outputs/run_summary.txt
+          git diff --cached --quiet || git commit -m "Store reproducible experiment outputs"
+          git push
